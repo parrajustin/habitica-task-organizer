@@ -125,7 +125,7 @@ export namespace Combine {
     | "FailedPostSuccess"
     | "FailedCompleteSuccess"
   > {
-    const userProperties = PropertiesService.getScriptProperties();
+    const userProperties = PropertiesService.getUserProperties();
     const taskSortPrefix = userProperties.getProperty("TASK_SORT_PREFIX");
     const apiKey = userProperties.getProperty("API_KEY");
     const apiUser = userProperties.getProperty("API_USER");

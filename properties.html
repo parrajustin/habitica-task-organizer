@@ -51,15 +51,33 @@
             <form onsubmit="handleFormSubmit(this)">
               <div class="mdl-card__supporting-text">
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                  <input class="mdl-textfield__input" type="text" id="prefix" name="prefix" />
+                  <input
+                    class="mdl-textfield__input"
+                    type="text"
+                    id="prefix"
+                    name="prefix"
+                    value="<?= PropertiesForm.GetPrefix() ?>"
+                  />
                   <label class="mdl-textfield__label" for="prefix">Habitica Todo Prefix</label>
                 </div>
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                  <input class="mdl-textfield__input" type="text" id="key" name="key" />
+                  <input
+                    class="mdl-textfield__input"
+                    type="text"
+                    id="key"
+                    name="key"
+                    value="<?= PropertiesForm.GetKey() ?>"
+                  />
                   <label class="mdl-textfield__label" for="key">Habitica API Key</label>
                 </div>
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                  <input class="mdl-textfield__input" type="text" id="user" name="user" />
+                  <input
+                    class="mdl-textfield__input"
+                    type="text"
+                    id="user"
+                    name="user"
+                    value="<?= PropertiesForm.GetUser() ?>"
+                  />
                   <label class="mdl-textfield__label" for="user">Habitica API User</label>
                 </div>
               </div>
@@ -91,13 +109,14 @@
         }
       }
       window.addEventListener("load", preventFormSubmit);
+      console.log(google.script.run);
 
       function updateUrl(url) {
         console.log(url);
       }
+      /* Handle the form submit but sending request to app script backend. */
       function handleFormSubmit(formObject) {
-        console.log(formObject);
-        google.script.run.withSuccessHandler(updateUrl).processForm(formObject);
+        google.script.run.withSuccessHandler(updateUrl).ProcessPropertiesForm(formObject);
       }
     </script>
   </body>

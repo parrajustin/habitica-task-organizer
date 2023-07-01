@@ -3,7 +3,7 @@ import { Option } from "./option";
 import { Result } from "./result";
 import { LZString } from "./lz-string";
 import { ShortUniqueId } from "./short-unique-id";
-import { PropertiesForm } from "./properties";
+import { PropertiesForm } from "./propertiesContent";
 
 interface ChecklistItem {
   completed: boolean;
@@ -43,7 +43,7 @@ interface TasksUserFetch {
  * @returns an option wrapping the possible output
  */
 function GetTodayTodoName(): Option<string> {
-  const userProperties = PropertiesService.getScriptProperties();
+  const userProperties = PropertiesService.getUserProperties();
   const taskSortPrefix = userProperties.getProperty("TASK_SORT_PREFIX");
   if (taskSortPrefix === null) {
     return Option.None;
@@ -60,7 +60,7 @@ function GetTodayTodo(): Result<
   Task,
   "InvalidScriptProperty" | "FailedFetchNetworkRequest" | "FailedTasksSuccess" | "MissingToday"
 > {
-  const userProperties = PropertiesService.getScriptProperties();
+  const userProperties = PropertiesService.getUserProperties();
   const apiKey = userProperties.getProperty("API_KEY");
   const apiUser = userProperties.getProperty("API_USER");
 
@@ -159,7 +159,7 @@ function GetTitle(str: string): string {
 function HandleSwitchChange(
   event: GoogleAppsScript.Addons.CommonEventObject & GoogleAppsScript.Addons.EventObject
 ): GoogleAppsScript.Card_Service.ActionResponse {
-  const userProperties = PropertiesService.getScriptProperties();
+  const userProperties = PropertiesService.getUserProperties();
   const apiKey = userProperties.getProperty("API_KEY");
   const apiUser = userProperties.getProperty("API_USER");
   if (apiKey === null || apiUser === null) {
@@ -203,7 +203,7 @@ function PopToRootAction(): GoogleAppsScript.Card_Service.ActionResponse {
 function CreateTaskTodoItem(
   event: GoogleAppsScript.Addons.CommonEventObject & GoogleAppsScript.Addons.EventObject
 ): GoogleAppsScript.Card_Service.ActionResponse {
-  const userProperties = PropertiesService.getScriptProperties();
+  const userProperties = PropertiesService.getUserProperties();
   const apiKey = userProperties.getProperty("API_KEY");
   const apiUser = userProperties.getProperty("API_USER");
   if (apiKey === null || apiUser === null) {
