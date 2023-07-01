@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "isolatedModules": true,
+    "module": "None",
+    "experimentalDecorators": true
+  }
+}

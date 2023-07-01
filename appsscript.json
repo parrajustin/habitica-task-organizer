@@ -1,0 +1,44 @@
+{
+  "timeZone": "America/Los_Angeles",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/script.scriptapp",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/calendar.addons.execute",
+    "https://www.googleapis.com/auth/gmail.addons.execute"
+  ],
+  "gmail": {
+    "name": "Habitica Tasks",
+    "contextualTriggers": [
+      {
+        "unconditional": {},
+        "onTriggerFunction": "RunHabitica"
+      }
+    ],
+    "primaryColor": "#146b2e",
+    "openLinkUrlPrefixes": ["https://developers.google.com/gmail"],
+    "version": "TRUSTED_TESTER_V2"
+  },
+  "addOns": {
+    "calendar": {
+      "homepageTrigger": {
+        "enabled": true,
+        "runFunction": "RunHabitica"
+      }
+    },
+    "common": {
+      "homepageTrigger": {
+        "enabled": true,
+        "runFunction": "RunHabitica"
+      },
+      "name": "Habitica Tasks",
+      "logoUrl": "https://lh3.googleusercontent.com/-WuPhRsFGKUc/XCng7m_FIxI/AAAAAAAAAGg/ASH4GCGDMs0d55OZQGCSIQHXjRAKnkeTQCLcBGAs/s400/jitsi-logo-96x96.png"
+    }
+  },
+  "webapp": {
+    "access": "MYSELF",
+    "executeAs": "USER_ACCESSING"
+  }
+}

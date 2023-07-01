@@ -1,0 +1,22 @@
+{
+  "name": "habitica-task-organizer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parrajustin/habitica-task-organizer.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/parrajustin/habitica-task-organizer/issues"
+  },
+  "homepage": "https://github.com/parrajustin/habitica-task-organizer#readme",
+  "dependencies": {
+    "@types/google-apps-script": "^1.0.64"
+  }
+}
