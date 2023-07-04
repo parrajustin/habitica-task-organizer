@@ -38,7 +38,7 @@
     }
   },
   "webapp": {
-    "access": "MYSELF",
+    "access": "ANYONE",
     "executeAs": "USER_ACCESSING"
   }
 }

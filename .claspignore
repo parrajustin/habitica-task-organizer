@@ -5,6 +5,7 @@
 !appsscript.json
 !**/*.gs
 !**/*.js
+!**/*.css
 !**/*.ts
 !**/*.html
 !appsscript.json

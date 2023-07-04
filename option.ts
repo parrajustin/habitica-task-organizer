@@ -188,7 +188,10 @@ export type OptionSomeTypes<T extends Option<any>[]> = {
 
 export namespace Option {
   export const None = NoneInteral;
-  export const Some = SomeImpl as typeof SomeImpl & (<T>(val: T) => SomeImpl<T>);
+  // export const Some = SomeImpl as typeof SomeImpl & (<T>(val: T) => SomeImpl<T>);
+  export function Some<T>(x: T) {
+    return new SomeImpl(x);
+  }
   /**
    * Parse a set of `Option`s, returning an array of all `Some` values.
    * Short circuits with the first `None` found, if any

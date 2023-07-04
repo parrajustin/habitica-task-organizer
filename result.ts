@@ -15,7 +15,7 @@ import { Utils } from "./utils";
  * pub fn unwrap_err(self) -> E
  * pub fn unwrap_or_default(self) -> T
  */
-interface BaseResult<T, E> extends Iterable<T extends Iterable<infer U> ? U : never> {
+interface BaseResult<T, E> {
   /** `true` when the result is Ok */ readonly ok: boolean;
   /** `true` when the result is Err */ readonly err: boolean;
 
@@ -101,13 +101,13 @@ export class ErrImpl<E> implements BaseResult<E, E> {
 
   private readonly _stack!: string;
 
-  [Symbol.iterator](): Iterator<never, never, any> {
-    return {
-      next(): IteratorResult<never, never> {
-        return { done: true, value: undefined! } as IteratorResult<never, never>;
-      },
-    };
-  }
+  // [Symbol.iterator](): Iterator<never, never, any> {
+  //   return {
+  //     next(): IteratorResult<never, never> {
+  //       return { done: true, value: undefined! } as IteratorResult<never, never>;
+  //     },
+  //   };
+  // }
 
   constructor(val: E) {
     if (!(this instanceof ErrImpl)) {
@@ -159,7 +159,7 @@ export class ErrImpl<E> implements BaseResult<E, E> {
   }
 
   mapErr<E2>(mapper: (err: E) => E2): Err<E2> {
-    return new Result.Err(mapper(this.val));
+    return Result.Err(mapper(this.val));
   }
 
   toOption(): Option<never> {
@@ -189,20 +189,20 @@ export class OkImpl<T> implements BaseResult<T, never> {
   readonly err!: false;
   readonly val!: T;
 
-  /**
-   * Helper function if you know you have an Ok<T> and T is iterable
-   */
-  [Symbol.iterator](): Iterator<T extends Iterable<infer U> ? U : never> {
-    const obj = Object(this.val) as Iterable<any>;
+  // /**
+  //  * Helper function if you know you have an Ok<T> and T is iterable
+  //  */
+  // [Symbol.iterator](): Iterator<T extends Iterable<infer U> ? U : never> {
+  //   const obj = Object(this.val) as Iterable<any>;
 
-    return Symbol.iterator in obj
-      ? obj[Symbol.iterator]()
-      : {
-          next(): IteratorResult<never, never> {
-            return { done: true, value: undefined! } as IteratorResult<never, never>;
-          },
-        };
-  }
+  //   return Symbol.iterator in obj
+  //     ? obj[Symbol.iterator]()
+  //     : {
+  //         next(): IteratorResult<never, never> {
+  //           return { done: true, value: undefined! } as IteratorResult<never, never>;
+  //         },
+  //       };
+  // }
 
   constructor(val: T) {
     if (!(this instanceof OkImpl)) {
@@ -239,7 +239,7 @@ export class OkImpl<T> implements BaseResult<T, never> {
   }
 
   map<T2>(mapper: (val: T) => T2): Ok<T2> {
-    return new Result.Ok(mapper(this.val));
+    return Result.Ok(mapper(this.val));
   }
 
   andThen<T2>(mapper: (val: T) => Ok<T2>): Ok<T2>;
@@ -292,8 +292,14 @@ export type ResultErrTypes<T extends Result<any, any>[]> = {
 };
 
 export namespace Result {
-  export const Err = ErrImpl as typeof ErrImpl & (<E>(err: E) => Err<E>);
-  export const Ok = OkImpl as typeof OkImpl & (<T>(val: T) => Ok<T>);
+  // export const Err = ErrImpl as typeof ErrImpl & (<E>(err: E) => Err<E>);
+  export function Err<E>(err: E) {
+    return new ErrImpl(err);
+  }
+  // export const Ok = OkImpl as typeof OkImpl & (<T>(val: T) => Ok<T>);
+  export function Ok<T>(val: T) {
+    return new OkImpl(val);
+  }
 
   /**
    * Parse a set of `Result`s, returning an array of all `Ok` values.
@@ -311,7 +317,7 @@ export namespace Result {
       }
     }
 
-    return new Ok(okResult as ResultOkTypes<T>);
+    return Ok(okResult as ResultOkTypes<T>);
   }
 
   /**
@@ -333,7 +339,7 @@ export namespace Result {
     }
 
     // it must be a Err
-    return new Err(errResult as ResultErrTypes<T>);
+    return Err(errResult as ResultErrTypes<T>);
   }
 
   /**
@@ -342,9 +348,9 @@ export namespace Result {
    */
   export function wrap<T, E = unknown>(op: () => T): Result<T, E> {
     try {
-      return new Ok(op());
+      return Ok(op());
     } catch (e) {
-      return new Err<E>(e as E);
+      return Err<E>(e as E);
     }
   }
 
@@ -355,10 +361,10 @@ export namespace Result {
   export function wrapAsync<T, E = unknown>(op: () => Promise<T>): Promise<Result<T, E>> {
     try {
       return op()
-        .then((val) => new Ok(val))
-        .catch((e) => new Err(e));
+        .then((val) => Ok(val))
+        .catch((e) => Err(e));
     } catch (e) {
-      return Promise.resolve(new Err(e as E));
+      return Promise.resolve(Err(e as E));
     }
   }
 

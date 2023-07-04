@@ -26,7 +26,30 @@ export namespace PropertiesForm {
     return userProperties.getProperty("API_USER");
   }
 
-  export function GetHtmlPage(e): GoogleAppsScript.HTML.HtmlOutput {
+  export function HasValidProperites(): boolean {
+    const userProperties = PropertiesService.getUserProperties();
+    const apiKey = userProperties.getProperty("API_KEY");
+    const apiUser = userProperties.getProperty("API_USER");
+    const taskSortPrefix = userProperties.getProperty("TASK_SORT_PREFIX");
+
+    return apiKey !== null && apiUser !== null && taskSortPrefix !== null;
+  }
+
+  /**
+   * Get the URL for the Google Apps Script running as a WebApp.
+   */
+  export function GetScriptUrl(): string {
+    return ScriptApp.getService().getUrl();
+  }
+
+  /**
+   * Gets the HTML page.
+   * @param e
+   * @returns the html output
+   */
+  export function GetHtmlPage(
+    e: GoogleAppsScript.Events.AppsScriptHttpRequestEvent
+  ): GoogleAppsScript.HTML.HtmlOutput {
     const params = JSON.stringify(e);
     console.log(JSON.stringify(params));
     return HtmlService.createTemplateFromFile("properties").evaluate();

@@ -46,7 +46,7 @@
         <div class="mdl-cell mdl-cell--8-col mdl-cell--10-col-tablet mdl-cell--12-col-phone">
           <div class="card-wide mdl-card mdl-shadow--2dp">
             <div class="mdl-card__title">
-              <h2 class="mdl-card__title-text">Found no user properties</h2>
+              <h2 class="mdl-card__title-text">User Property Editor</h2>
             </div>
             <form onsubmit="handleFormSubmit(this)">
               <div class="mdl-card__supporting-text">
@@ -89,11 +89,26 @@
                 >
                   Save Habitica Props
                 </button>
+                <!-- prettier-ignore -->
+                <button
+                  id="returnBtn"
+                  type="button"
+                  onclick="navigateHome()"
+                  class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect"
+                  <? if (!PropertiesForm.HasValidProperites()) { ?>
+                  disabled
+                  <? } ?>
+                  > Return to tasks
+                </button>
               </div>
             </form>
           </div>
         </div>
         <div class="mdl-cell mdl-cell--2-col mdl-cell--1-col-tablet mdl-cell--hide-phone"></div>
+      </div>
+      <div id="toast" class="mdl-js-snackbar mdl-snackbar">
+        <div class="mdl-snackbar__text"></div>
+        <button class="mdl-snackbar__action" type="button"></button>
       </div>
     </div>
     <!-- Store data passed to template here, so it is available to the
@@ -109,14 +124,27 @@
         }
       }
       window.addEventListener("load", preventFormSubmit);
-      console.log(google.script.run);
 
-      function updateUrl(url) {
-        console.log(url);
+      function processSuccess(success) {
+        const hadValidProperites = "<?= PropertiesForm.HasValidProperites() ?>" === "true";
+        const snackbarContainer = document.querySelector("#toast");
+        const data = { message: "was successful" };
+        if (!hadValidProperites) {
+          data["timeout"] = 100000;
+          data["actionText"] = "Goto Tasks";
+          data["actionHandler"] = () => {
+            navigateHome();
+          };
+        }
+        document.querySelector("#returnBtn").disabled = false;
+        snackbarContainer.MaterialSnackbar.showSnackbar(data);
       }
       /* Handle the form submit but sending request to app script backend. */
       function handleFormSubmit(formObject) {
-        google.script.run.withSuccessHandler(updateUrl).ProcessPropertiesForm(formObject);
+        google.script.run.withSuccessHandler(processSuccess).ProcessPropertiesForm(formObject);
+      }
+      function navigateHome() {
+        window.top.location.href = "<?= PropertiesForm.GetScriptUrl() ?>";
       }
     </script>
   </body>
