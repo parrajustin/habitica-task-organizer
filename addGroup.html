@@ -80,19 +80,19 @@
               </div>
               <div class="editor-card__secondary mdc-typography mdc-typography--body2">
                 <form onsubmit="handleFormSubmit(this)" name="group">
+                  <!-- Id of selected group -->
+                  <? if (AddGroupHtml.HasSelectedGroup()) { ?>
+                  <input
+                    id="selectedGroup"
+                    type="text"
+                    name="selectedGroup"
+                    style="display: none"
+                    value="<?= AddGroupHtml.GetSelectedGroupId() ?>"
+                  />
+                  <? } ?>
                   <div class="mdc-layout-grid">
                     <div class="mdc-layout-grid__inner">
                       <div class="mdc-layout-grid__cell--span-12">
-                        <!-- Id of selected group -->
-                        <? if (AddGroupHtml.HasSelectedGroup()) { ?>
-                        <input
-                          id="parentGroup"
-                          type="text"
-                          name="selectedGroup"
-                          style="display: none"
-                          value="<?= AddGroupHtml.GetSelectedGroupId() ?>"
-                        />
-                        <? } ?>
                         <!-- Render textfield component -->
                         <label class="mdc-text-field mdc-text-field--filled set-width-100">
                           <span class="mdc-text-field__ripple"></span>
@@ -338,26 +338,87 @@
               </div>
             </div>
             <div class="mdc-card__actions">
-              <button class="mdc-button mdc-card__action mdc-card__action--button">
-                <div class="mdc-button__ripple"></div>
-                <span class="mdc-button__label" onclick="handleCreateClick()">Create</span>
-              </button>
-              <button class="mdc-button mdc-card__action mdc-card__action--button">
-                <div class="mdc-button__ripple"></div>
-                <span class="mdc-button__label">Exit</span>
-              </button>
+              <div class="mdc-layout-grid set-width-100">
+                <div class="mdc-layout-grid__inner">
+                  <div class="mdc-layout-grid__cell--span-12">
+                    <button
+                      class="mdc-button mdc-card__action mdc-card__action--button"
+                      id="createBtn"
+                    >
+                      <div class="mdc-button__ripple"></div>
+                      <span class="mdc-button__label" onclick="handleCreateClick()">Create</span>
+                    </button>
+                    <button class="mdc-button mdc-card__action mdc-card__action--button">
+                      <div class="mdc-button__ripple"></div>
+                      <span class="mdc-button__label" onclick="navigateHome()">Exit</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="mdc-layout-grid__inner">
+                  <div class="mdc-layout-grid__cell--span-12">
+                    <div
+                      role="progressbar"
+                      class="mdc-linear-progress"
+                      aria-label="progress bar"
+                      aria-valuemin="0"
+                      aria-valuemax="1"
+                      aria-valuenow="0"
+                    >
+                      <div class="mdc-linear-progress__buffer">
+                        <div class="mdc-linear-progress__buffer-bar"></div>
+                        <div class="mdc-linear-progress__buffer-dots"></div>
+                      </div>
+                      <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+                        <span class="mdc-linear-progress__bar-inner"></span>
+                      </div>
+                      <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+                        <span class="mdc-linear-progress__bar-inner"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div class="mdc-layout-grid__cell--span-2-desktop"></div>
       </div>
     </div>
+    <aside class="mdc-snackbar successSnackbar">
+      <div class="mdc-snackbar__surface" role="status" aria-relevant="additions">
+        <div class="mdc-snackbar__label" aria-atomic="false">Success</div>
+        <div class="mdc-snackbar__actions" aria-atomic="true">
+          <button type="button" class="mdc-button mdc-snackbar__action" onclick="navigateHome()">
+            <div class="mdc-button__ripple"></div>
+            <span class="mdc-button__label">Return Home</span>
+          </button>
+          <button class="mdc-icon-button mdc-snackbar__dismiss material-icons" title="Dismiss">
+            close
+          </button>
+        </div>
+      </div>
+    </aside>
+    <aside class="mdc-snackbar failedSnackbar">
+      <div class="mdc-snackbar__surface" role="status" aria-relevant="additions">
+        <div class="mdc-snackbar__label" aria-atomic="false" id="snackbarContent">
+          Failed for some reason?
+        </div>
+        <div class="mdc-snackbar__actions" aria-atomic="true">
+          <button class="mdc-icon-button mdc-snackbar__dismiss material-icons" title="Dismiss">
+            close
+          </button>
+        </div>
+      </div>
+    </aside>
     <!-- Store data passed to template here, so it is available to the
    imported JavaScript. -->
     <script>
       var ripples;
       var mdcList;
       var select;
+      var linearProgress;
+      var successSnackbar;
+      var failedSnackbar;
       // Prevent forms from submitting.
       function preventFormSubmit() {
         var forms = document.querySelectorAll("form");
@@ -390,26 +451,39 @@
           ripples.push(mdc.ripple.MDCRipple.attachTo(listItemEl));
         });
 
+        linearProgress = mdc.linearProgress.MDCLinearProgress.attachTo(
+          document.querySelector(".mdc-linear-progress")
+        );
+        linearProgress.foundation.setDeterminate(false);
+        linearProgress.foundation.close();
+
+        successSnackbar = mdc.snackbar.MDCSnackbar.attachTo(
+          document.querySelector(".successSnackbar")
+        );
+        failedSnackbar = mdc.snackbar.MDCSnackbar.attachTo(
+          document.querySelector(".failedSnackbar")
+        );
+
         preventFormSubmit();
       });
-      console.log("mdc", mdc);
-
-      // function processSuccess(success) {
-      //   const hadValidProperites = "<?= PropertiesForm.HasValidProperites() ?>" === "true";
-      //   const snackbarContainer = document.querySelector("#toast");
-      //   const data = { message: "was successful" };
-      //   if (!hadValidProperites) {
-      //     data["timeout"] = 100000;
-      //     data["actionText"] = "Goto Tasks";
-      //     data["actionHandler"] = () => {
-      //       navigateHome();
-      //     };
-      //   }
-      //   document.querySelector("#returnBtn").disabled = false;
-      //   snackbarContainer.MaterialSnackbar.showSnackbar(data);
-      // }
       function processSuccess(resp) {
-        console.log("processSuccess", resp);
+        if (resp.ok) {
+          successSnackbar.open();
+        } else {
+          const content = document.querySelector("#snackbarContent");
+          content.innerHTML = `Failed: ${resp.error}`;
+          failedSnackbar.open();
+        }
+
+        document.querySelector("#createBtn").disabled = false;
+        linearProgress.foundation.close();
+      }
+      function processFailure() {
+        document.querySelector("#createBtn").disabled = false;
+        const content = document.querySelector("#snackbarContent");
+        content.innerHTML = `Failed for unknown reason`;
+        failedSnackbar.open();
+        linearProgress.foundation.close();
       }
       function handleCreateClick() {
         document.group.requestSubmit();
@@ -417,8 +491,12 @@
       }
       /* Handle the form submit but sending request to app script backend. */
       function handleFormSubmit(formObject) {
-        console.log("handleFormSubmit:", formObject);
-        google.script.run.withSuccessHandler(processSuccess).ProcesGroupForm(formObject);
+        document.querySelector("#createBtn").disabled = true;
+        linearProgress.foundation.open();
+        google.script.run
+          .withSuccessHandler(processSuccess)
+          .withFailureHandler(processFailure)
+          .ProcesGroupForm(formObject);
       }
       function navigateHome() {
         window.top.location.href = "<?= Utils.GetScriptUrl() ?>";

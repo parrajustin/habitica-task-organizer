@@ -204,6 +204,10 @@ interface FormData {
    * Parent group or ''.
    */
   parent: string;
+  /**
+   * If there is a selected group.
+   */
+  selectedGroup?: string;
 }
 
 type FullFormType = { [key: string]: "on" } & FormData;
@@ -233,38 +237,62 @@ function ProcesGroupForm(e: FullFormType): FormReturn {
     return { ok: false, error: "Text must not be ''." };
   }
 
-  // const deps = Object.keys(e).filter((i) => i !== "text" && i !== "parent");
-  // if (maybeGraph.ok) {
-  //   const graph = maybeGraph.safeUnwrap();
-  //   graph.createNewGroupNode(e.text, e.parent !== "" ? Option.Some(e.parent) : Option.None, deps);
-  //   const updatesReqs = graph.convertModifiedToUpdates();
+  const deps = Object.keys(e).filter(
+    (i) => i !== "text" && i !== "parent" && i !== "selectedGroup"
+  );
+  let updateRequests: Habitica.UpdateRequest[] = [];
+  if (maybeGraph.ok && e.selectedGroup === undefined) {
+    console.log("Create Group Node");
+    const graph = maybeGraph.safeUnwrap();
 
-  //   const requests: GoogleAppsScript.URL_Fetch.URLFetchRequest[] = updatesReqs.map((r) => {
-  //     return {
-  //       method: r.method,
-  //       url: r.url,
-  //       payload: JSON.stringify({
-  //         text: r.itemText,
-  //         completed: r.completed,
-  //       }),
+    graph.createNewGroupNode(e.text, e.parent !== "" ? Option.Some(e.parent) : Option.None, deps);
+    updateRequests = graph.convertModifiedToUpdates();
+  }
 
-  //       headers: {
-  //         "x-api-key": apiKey,
-  //         "x-api-user": apiUser,
-  //         "content-type": "application/json",
-  //       },
-  //       muteHttpExceptions: true,
-  //     };
-  //   });
-  //   const response = UrlFetchApp.fetchAll(requests);
-  //   const successCount = response.filter((r) => r.getResponseCode() === 200).length;
-  //   const failedCount = response.filter((r) => r.getResponseCode() === 404).length;
+  if (maybeGraph.ok && e.selectedGroup !== undefined && e.selectedGroup !== "") {
+    console.log("Update Group Node");
+    const graph = maybeGraph.safeUnwrap();
 
-  //   return {
-  //     ok: successCount > failedCount,
-  //     error: failedCount !== 0 ? `Success: ${successCount}, Failed: ${failedCount}` : undefined,
-  //   };
-  // }
+    const result = graph.updateGroupNode(
+      e.selectedGroup,
+      e.text,
+      e.parent !== "" ? Option.Some(e.parent) : Option.None,
+      deps
+    );
+    if (!result.ok) {
+      return { ok: false, error: result.val };
+    }
+    updateRequests = graph.convertModifiedToUpdates();
+  }
+
+  if (updateRequests.length > 0) {
+    console.log(updateRequests);
+    const requests: GoogleAppsScript.URL_Fetch.URLFetchRequest[] = updateRequests.map((r) => {
+      return {
+        method: r.method,
+        url: r.url,
+        payload: JSON.stringify({
+          text: r.itemText,
+          completed: r.completed,
+        }),
+
+        headers: {
+          "x-api-key": apiKey,
+          "x-api-user": apiUser,
+          "content-type": "application/json",
+        },
+        muteHttpExceptions: true,
+      };
+    });
+    const response = UrlFetchApp.fetchAll(requests);
+    const successCount = response.filter((r) => r.getResponseCode() === 200).length;
+    const failedCount = response.filter((r) => r.getResponseCode() === 404).length;
+
+    return {
+      ok: successCount > failedCount,
+      error: failedCount !== 0 ? `Success: ${successCount}, Failed: ${failedCount}` : undefined,
+    };
+  }
 
   return { ok: false, error: "No response from habitica api!" };
 }

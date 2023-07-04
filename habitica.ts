@@ -265,7 +265,7 @@ export namespace Habitica {
 
   export type TaskNodeType = GroupTaskNode | ItemTaskNode;
 
-  interface UpdateRequest {
+  export interface UpdateRequest {
     url: string;
     method: "post" | "put";
     completed: boolean;
@@ -303,7 +303,7 @@ export namespace Habitica {
       for (const node of this.nodes) {
         switch (node.type) {
           case "GROUP":
-            this.updateGroupNode(node);
+            this.updateGroupNodeConnections(node);
             break;
           case "ITEM":
             this.updateItemNode(node);
@@ -448,15 +448,30 @@ export namespace Habitica {
       return this.findGroupNodeFromRaw(key.data);
     }
 
+    /**
+     * Updates a given group node with the information, Result is ok if there was a change.
+     * @param id id of group node to update
+     * @param text text to set for group node
+     * @param parentId the parent of the group node
+     * @param childIds ids of nodes to set this group as its parent
+     * @returns result of the operation
+     */
     public updateGroupNode(
       id: string,
       text: string,
       parentId: Option<string>,
       childIds: string[]
-    ): Result<null, "Couldn't find node" | "no change"> {
+    ): Result<
+      null,
+      "Couldn't find node" | "no change" | "Can't have self as child" | "Has cyclical loop"
+    > {
       const groupToUpdate = this.findGroupNodeFromRaw(id);
       if (groupToUpdate.none) {
         return Result.Err("Couldn't find node");
+      }
+
+      if (childIds.findIndex((i) => i === id) !== -1) {
+        return Result.Err("Can't have self as child");
       }
 
       Guards.assert<Ok<GroupTaskNode>>(groupToUpdate);
@@ -551,6 +566,10 @@ export namespace Habitica {
         }
       }
 
+      if (this.groupHasLoop(groupToUpdate.safeUnwrap())) {
+        return Result.Err("Has cyclical loop");
+      }
+
       if (changedGroupNode) {
         this.modifiedNodes.push(groupToUpdate.safeUnwrap());
       }
@@ -643,7 +662,7 @@ export namespace Habitica {
      * Updates the connections of the group task node.
      * @param node the group task node to update
      */
-    private updateGroupNode(node: GroupTaskNode) {
+    private updateGroupNodeConnections(node: GroupTaskNode) {
       if (node.data.parentGroupId !== undefined) {
         const parent = this.getGroupNode(node.data.parentGroupId);
         if (parent.none) {
