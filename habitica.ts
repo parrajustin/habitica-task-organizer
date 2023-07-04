@@ -250,7 +250,7 @@ export namespace Habitica {
     isNew?: boolean;
     id: KeyTypes;
     prev?: TaskNodeType;
-    next: TaskNode[];
+    next: TaskNodeType[];
   }
 
   export interface GroupTaskNode extends TaskNode {
@@ -316,6 +316,38 @@ export namespace Habitica {
           this.rootNodes.push(node);
         }
       }
+
+      const sortFunc = (a, b) => {
+        if (a.type === "GROUP" && b.type === "ITEM") {
+          return -1;
+        } else if (a.type === "ITEM" && b.type === "GROUP") {
+          return 1;
+        }
+
+        if (a.type === "GROUP" && b.type === "GROUP") {
+          return a.data.description.localeCompare(b.data.description);
+        }
+
+        if (a.type === "ITEM" && b.type === "ITEM") {
+          return a.data.text.localeCompare(b.data.text);
+        }
+      };
+      const recursiveSort = (nodes: Habitica.TaskNodeType[]) => {
+        nodes.sort(sortFunc);
+        nodes.forEach((n) => {
+          recursiveSort(n.next);
+        });
+      };
+      recursiveSort(this.rootNodes);
+
+      this.nodes = [];
+      const recursiveMap = (nodes: Habitica.TaskNodeType[]) => {
+        nodes.forEach((n) => {
+          this.nodes.push(n);
+          recursiveMap(n.next);
+        });
+      };
+      recursiveMap(this.rootNodes);
     }
 
     /**

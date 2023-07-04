@@ -72,10 +72,20 @@
               ></div>
               <div class="editor-card__primary">
                 <h2 class="editor-card__title mdc-typography mdc-typography--headline6">
-                  Group Creation
+                  Group
+                  <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
+                  Creation
+                  <? } else { ?>
+                  Editor
+                  <? } ?>
                 </h2>
                 <h3 class="editor-card__subtitle mdc-typography mdc-typography--subtitle2">
-                  Select options below to create a new card.
+                  Select options below to
+                  <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
+                  create a new group.
+                  <? } else { ?>
+                  modify an existing group.
+                  <? } ?>
                 </h3>
               </div>
               <div class="editor-card__secondary mdc-typography mdc-typography--body2">
@@ -346,7 +356,13 @@
                       id="createBtn"
                     >
                       <div class="mdc-button__ripple"></div>
-                      <span class="mdc-button__label" onclick="handleCreateClick()">Create</span>
+                      <span class="mdc-button__label" onclick="handleCreateClick()">
+                        <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
+                        Create
+                        <? } else { ?>
+                        Update
+                        <? } ?></span
+                      >
                     </button>
                     <button class="mdc-button mdc-card__action mdc-card__action--button">
                       <div class="mdc-button__ripple"></div>
