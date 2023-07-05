@@ -18,7 +18,7 @@
 <html>
   <head>
     <base target="_top" />
-    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link
       rel="stylesheet"
       href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"
@@ -39,6 +39,10 @@
         .mdc-drawer .mdc-deprecated-list-item--activated .mdc-deprecated-list-item__graphic {
           color: var(--mdc-theme-secondary);
         }
+      }
+
+      html {
+        overflow-x: hidden;
       }
 
       body {
@@ -87,10 +91,26 @@
         padding-left: 5px;
         border-radius: var(--mdc-text-button-container-shape, var(--mdc-shape-small, 4px));
       }
+
+      .quick-wrapper {
+        position: fixed;
+        right: 32px;
+        bottom: 32px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+      }
+
+      .animate {
+        -webkit-transition: all 300ms 50ms cubic-bezier(0.4, 0, 1, 1);
+        -moz-transition: all 300ms 50ms cubic-bezier(0.4, 0, 1, 1);
+        -o-transition: all 300ms 50ms cubic-bezier(0.4, 0, 1, 1);
+        transition: all 300ms 50ms cubic-bezier(0.4, 0, 1, 1);
+      }
     </style>
   </head>
   <body>
-    <header class="mdc-top-app-bar mdc-top-app-bar--short">
+    <header class="mdc-top-app-bar mdc-top-app-bar--fixed">
       <div class="mdc-top-app-bar__row">
         <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
           <button
@@ -186,25 +206,25 @@
     </aside>
     <div class="mdc-drawer-scrim"></div>
 
-    <main class="mdc-top-app-bar--short-fixed-adjust">
+    <main class="mdc-top-app-bar--fixed-adjust">
       <div class="mdc-layout-grid">
         <div class="mdc-layout-grid__inner">
-          <div class="mdc-layout-grid__cell--span-2-desktop"></div>
+          <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-2-desktop"></div>
           <div
-            class="mdc-layout-grid__cell--span-8-desktop mdc-layout-grid__cell--span-8-tablet mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--align-middle"
+            class="mdc-layout-grid__cell mdc-layout-grid__cell--span-8-desktop mdc-layout-grid__cell--span-8-tablet mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--align-middle"
           >
             <div class="mdc-layout-grid__inner">
               <? const roots = TasksHtml.GetRoots();
                for (const root of roots) { ?>
               <div
-                class="mdc-layout-grid__cell--span-6-desktop mdc-layout-grid__cell--span-8-tablet mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--align-middle"
+                class="mdc-layout-grid__cell mdc-layout-grid__cell--span-6-desktop mdc-layout-grid__cell--span-8-tablet mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--align-middle"
               >
                 <div class="mdc-card">
                   <div class="mdc-card__primary-action" tabindex="0">
                     <div class="editor-card__secondary mdc-typography mdc-typography--body2">
                       <div class="mdc-layout-grid">
                         <div class="mdc-layout-grid__inner">
-                          <div class="mdc-layout-grid__cell--span-12">
+                          <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
                             <!-- Text container segment -->
                             <div class="child-col mdc-ripple-surface node-text">
                               <div class="child-row">
@@ -238,7 +258,7 @@
                                 <div class="mdc-touch-target-wrapper">
                                   <button
                                     class="mdc-icon-button"
-                                    onclick="handleEditClick(<?= TasksHtml.IsGroup(root) ?>, '<?= TasksHtml.GetId(root) ?>', this)"
+                                    onclick="handleEditClick('<?= TasksHtml.IsGroup(root) ?>', '<?= TasksHtml.GetId(root) ?>', this)"
                                   >
                                     <div class="mdc-icon-button__ripple"></div>
                                     <span class="mdc-icon-button__focus-ring"></span>
@@ -293,7 +313,7 @@
                                     <div class="mdc-touch-target-wrapper">
                                       <button
                                         class="mdc-icon-button"
-                                        onclick="handleEditClick(<?= TasksHtml.IsGroup(firstChild) ?>, '<?= TasksHtml.GetId(firstChild) ?>', this)"
+                                        onclick="handleEditClick('<?= TasksHtml.IsGroup(firstChild) ?>', '<?= TasksHtml.GetId(firstChild) ?>', this)"
                                       >
                                         <div class="mdc-icon-button__ripple"></div>
                                         <span class="mdc-icon-button__focus-ring"></span>
@@ -351,7 +371,7 @@
                                         <div class="mdc-touch-target-wrapper">
                                           <button
                                             class="mdc-icon-button"
-                                            onclick="handleEditClick(<?= TasksHtml.IsGroup(secondChild) ?>, '<?= TasksHtml.GetId(secondChild) ?>', this)"
+                                            onclick="handleEditClick('<?= TasksHtml.IsGroup(secondChild) ?>', '<?= TasksHtml.GetId(secondChild) ?>', this)"
                                           >
                                             <div class="mdc-icon-button__ripple"></div>
                                             <span class="mdc-icon-button__focus-ring"></span>
@@ -383,10 +403,125 @@
               <? } ?>
             </div>
           </div>
-          <div class="mdc-layout-grid__cell--span-2-desktop"></div>
+          <div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-2-desktop"></div>
         </div>
       </div>
     </main>
+
+    <!-- Shortcut to add tasks -->
+    <div class="mdc-touch-target-wrapper quick-wrapper">
+      <div
+        class="mdc-circular-progress"
+        style="width: 48px; height: 48px"
+        role="progressbar"
+        aria-label="Example Progress Bar"
+        aria-valuemin="0"
+        aria-valuemax="1"
+      >
+        <div class="mdc-circular-progress__determinate-container">
+          <svg
+            class="mdc-circular-progress__determinate-circle-graphic"
+            viewBox="0 0 48 48"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              class="mdc-circular-progress__determinate-track"
+              cx="24"
+              cy="24"
+              r="18"
+              stroke-width="4"
+            />
+            <circle
+              class="mdc-circular-progress__determinate-circle"
+              cx="24"
+              cy="24"
+              r="18"
+              stroke-dasharray="113.097"
+              stroke-dashoffset="113.097"
+              stroke-width="4"
+            />
+          </svg>
+        </div>
+        <div class="mdc-circular-progress__indeterminate-container">
+          <div class="mdc-circular-progress__spinner-layer">
+            <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
+              <svg
+                class="mdc-circular-progress__indeterminate-circle-graphic"
+                viewBox="0 0 48 48"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="18"
+                  stroke-dasharray="113.097"
+                  stroke-dashoffset="56.549"
+                  stroke-width="4"
+                />
+              </svg>
+            </div>
+            <div class="mdc-circular-progress__gap-patch">
+              <svg
+                class="mdc-circular-progress__indeterminate-circle-graphic"
+                viewBox="0 0 48 48"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="18"
+                  stroke-dasharray="113.097"
+                  stroke-dashoffset="56.549"
+                  stroke-width="3.2"
+                />
+              </svg>
+            </div>
+            <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
+              <svg
+                class="mdc-circular-progress__indeterminate-circle-graphic"
+                viewBox="0 0 48 48"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="18"
+                  stroke-dasharray="113.097"
+                  stroke-dashoffset="56.549"
+                  stroke-width="4"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="mdc-fab mdc-fab--touch animate" onclick="handleQuickShortcut(this)">
+        <div class="mdc-fab__ripple"></div>
+        <div class="mdc-fab__focus-ring"></div>
+        <span class="material-icons mdc-fab__icon">add</span>
+        <div
+          class="mdc-text-field mdc-text-field--fullwidth mdc-text-field--no-label"
+          style="display: none; text-transform: none"
+        >
+          <input
+            type="text"
+            id="text-field-fullwidth-helper"
+            placeholder="New task text"
+            class="mdc-text-field__input"
+            aria-label="Quick create task new text"
+          />
+        </div>
+      </button>
+    </div>
+
+    <!-- Snackbar -->
+    <aside class="mdc-snackbar">
+      <div class="mdc-snackbar__surface" role="status" aria-relevant="additions">
+        <div class="mdc-snackbar__label" aria-atomic="false">
+          Can't send photo. Retry in 5 seconds.
+        </div>
+      </div>
+    </aside>
     <!-- Store data passed to template here, so it is available to the imported JavaScript. -->
     <script>
       var ripples;
@@ -394,9 +529,12 @@
       var addMenu;
       var linearProgress;
       var checkboxes = [];
+      var quickTask;
+      var quickTaskProgress;
+      var snackbar;
       window.addEventListener("load", () => {
         // Create ripples.
-        const selector = ".mdc-button, .mdc-icon-button, .mdc-card__primary-action";
+        const selector = ".mdc-button, .mdc-icon-button, .mdc-card__primary-action, .mdc-fab";
         ripples = [].map.call(document.querySelectorAll(selector), (el) => {
           return mdc.ripple.MDCRipple.attachTo(el);
         });
@@ -418,11 +556,11 @@
           }
         };
 
-        document.querySelectorAll('.mdc-checkbox').forEach(el => {
+        document.querySelectorAll(".mdc-checkbox").forEach((el) => {
           const checkbox = mdc.checkbox.MDCCheckbox.attachTo(el);
           checkbox.handleChange = (f) => {
             console.log("handleChange", f, checkbox);
-          }
+          };
           checkboxes.push(checkbox);
         });
 
@@ -431,6 +569,57 @@
         );
         linearProgress.foundation.setDeterminate(false);
         linearProgress.foundation.close();
+
+        quickTask = mdc.textField.MDCTextField.attachTo(document.querySelector(".mdc-text-field"));
+        quickTask.foundation.adapter.registerInputInteractionHandler("focusout", (e) => {
+          quickTask.root.parentElement.classList.remove("mdc-fab--extended");
+          quickTask.root.style.display = "none";
+        });
+        quickTask.foundation.adapter.registerInputInteractionHandler("keypress", (e) => {
+          console.log("keypress", e);
+          if (e.key === "Enter") {
+            quickTask.disabled = true;
+            quickTaskProgress.foundation.open();
+            google.script.run
+              .withSuccessHandler((resp) => {
+                quickTask.disabled = false;
+                quickTaskProgress.foundation.close();
+                if (!resp.ok) {
+                  snackbar.open();
+                  document.querySelector(
+                    ".mdc-snackbar__label"
+                  ).innerText = `Error "${resp.error}"`;
+
+                  quickTask.foundation.activateFocus();
+                } else {
+                  snackbar.open();
+                  document.querySelector(".mdc-snackbar__label").innerText =
+                    "Successfully added task.";
+
+                  quickTask.root.parentElement.classList.remove("mdc-fab--extended");
+                  quickTask.root.style.display = "none";
+                }
+              })
+              .withFailureHandler(() => {
+                snackbar.open();
+                document.querySelector(
+                  ".mdc-snackbar__label"
+                ).innerText = `Unknown error when attempting to add task.`;
+                quickTask.disabled = false;
+                quickTask.foundation.activateFocus();
+                quickTaskProgress.foundation.close();
+              })
+              .AttemptQuickCreateTask(quickTask.value);
+          }
+        });
+
+        quickTaskProgress = mdc.circularProgress.MDCCircularProgress.attachTo(
+          document.querySelector(".mdc-circular-progress")
+        );
+        quickTaskProgress.foundation.setDeterminate(false);
+        quickTaskProgress.foundation.close();
+
+        snackbar = mdc.snackbar.MDCSnackbar.attachTo(document.querySelector(".mdc-snackbar"));
       });
 
       function handleMenuClick() {
@@ -442,28 +631,44 @@
       function handleCheckboxClick(id, element) {
         linearProgress.foundation.open();
         element.disabled = true;
-        console.log(id);
         google.script.run
           .withSuccessHandler((resp) => {
             element.disabled = false;
             linearProgress.foundation.close();
             if (!resp.ok) {
               element.checked = !element.checked;
+              snackbar.open();
+              document.querySelector(".mdc-snackbar__label").innerText = `Error "${resp.error}"`;
+            } else {
+              snackbar.open();
+              document.querySelector(
+                ".mdc-snackbar__label"
+              ).innerText = `Successfully updated complete state.`;
             }
           })
           .withFailureHandler(() => {
+            snackbar.open();
+            document.querySelector(
+              ".mdc-snackbar__label"
+            ).innerText = `Unknown error when attempting to modify complete state.`;
             element.disabled = false;
             element.checked = !element.checked;
             linearProgress.foundation.close();
           })
           .AttemptChangeTaskComplete(id, element.checked);
       }
+      function handleQuickShortcut(element) {
+        element.classList.add("mdc-fab--extended");
+        element.querySelector(".mdc-text-field").style.display = "";
+        queueMicrotask(() => {
+          element.querySelector("input").focus();
+        });
+      }
       function handleEditClick(isGroup, id, element) {
-        console.log(isGroup, id, element);
         linearProgress.open();
         element.disabled = true;
         if (isGroup === "true") {
-          const baseUrl = <?= Utils.GetScriptUrl('?path=addGroup') ?>;
+          const baseUrl = "<?= Utils.GetScriptUrl('?path=addGroup') ?>";
           window.top.location.href = `${baseUrl}&selectedGroup=${id}`;
         }
       }

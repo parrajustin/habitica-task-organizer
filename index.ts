@@ -284,14 +284,20 @@ function doGet(
     apiUser === null ||
     taskSortPrefix === null
   ) {
-    return PropertiesForm.GetHtmlPage(e);
+    return PropertiesForm.GetHtmlPage(e).addMetaTag(
+      "viewport",
+      "width=device-width, initial-scale=1"
+    );
   }
 
   Logger.log("addgroup index", e.parameter["path"], e.parameter["path"] === "addGroup");
   if (e.parameter["path"] === "addGroup") {
     console.log("entering add group");
-    return AddGroupHtml.GetHtmlPage(e);
+    return AddGroupHtml.GetHtmlPage(e).addMetaTag(
+      "viewport",
+      "width=device-width, initial-scale=1"
+    );
   }
 
-  return TasksHtml.GetHtmlPage(e);
+  return TasksHtml.GetHtmlPage(e).addMetaTag("viewport", "width=device-width, initial-scale=1");
 }

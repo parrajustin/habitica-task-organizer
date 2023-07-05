@@ -486,6 +486,38 @@ export namespace Habitica {
     }
 
     /**
+     * Attempts to create a new task node.
+     * @param text text of the new item node
+     * @returns result of the operation
+     */
+    public createTaskNode(text: string): Result<null, ""> {
+      // Wrap the id as a item key.
+      const id = this.WrapItemNodeId(this.uid.stamp(15));
+
+      const itemNode: ItemTaskNode = {
+        isNew: true,
+        id,
+        next: [],
+        type: "ITEM",
+        data: {
+          id,
+          text,
+          createdDate: this.uid.parseStamp(id.data),
+          habiticaId: "",
+          completed: false,
+        },
+      };
+
+      this.addModified(itemNode, "Created new item node.");
+      this.nodes.push(itemNode);
+      if (itemNode.prev === undefined) {
+        this.rootNodes.push(itemNode);
+      }
+
+      return Result.Ok(null);
+    }
+
+    /**
      * Attempts to change the complete state of a task node, result is ok if there was a change.
      * @param id id of node to update
      * @param complete the new complete state

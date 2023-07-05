@@ -83,9 +83,6 @@ export namespace TasksHtml {
   export function GetHtmlPage(
     e: GoogleAppsScript.Events.AppsScriptHttpRequestEvent
   ): GoogleAppsScript.HTML.HtmlOutput {
-    const params = JSON.stringify(e);
-    console.log(JSON.stringify(params));
-    // Logger.log(HtmlService.createTemplateFromFile("tasks").getCodeWithComments());
     return HtmlService.createTemplateFromFile("tasks").evaluate();
   }
 }
@@ -109,6 +106,29 @@ export function AttemptChangeTaskComplete(
   const graph = maybeGraph.safeUnwrap();
 
   const result = graph.changeNodeCompleteState(id, complete);
+  if (result.err) {
+    return { ok: false, error: result.val };
+  }
+
+  return Utils.ExecuteGraphUpdate(graph);
+}
+
+/**
+ * Attempts to create a new task for the shortcut.
+ * @param text text of the new task to create
+ * @returns result of the operation
+ */
+export function AttemptQuickCreateTask(text: string): { ok: boolean; error?: string } {
+  console.log("AttemptQuickCreateTask", text);
+
+  const maybeGraph = Habitica.GetTaskGraph();
+  if (maybeGraph.err) {
+    return { ok: false, error: maybeGraph.val };
+  }
+  Guards.assert<Ok<Habitica.TaskGraph>>(maybeGraph);
+  const graph = maybeGraph.safeUnwrap();
+
+  const result = graph.createTaskNode(text);
   if (result.err) {
     return { ok: false, error: result.val };
   }
