@@ -225,13 +225,6 @@ interface FormReturn {
 function ProcesGroupForm(e: FullFormType): FormReturn {
   console.log("ProcesGroupForm", e);
   const maybeGraph = Habitica.GetTaskGraph();
-  const userProperties = PropertiesService.getUserProperties();
-  const apiKey = userProperties.getProperty("API_KEY");
-  const apiUser = userProperties.getProperty("API_USER");
-
-  if (apiKey === null || apiUser === null) {
-    return { ok: false, error: "No user properties set!" };
-  }
 
   if (e.text === "") {
     return { ok: false, error: "Text must not be ''." };
@@ -250,7 +243,6 @@ function ProcesGroupForm(e: FullFormType): FormReturn {
   }
 
   if (maybeGraph.ok && e.selectedGroup !== undefined && e.selectedGroup !== "") {
-    console.log("Update Group Node");
     const graph = maybeGraph.safeUnwrap();
 
     const result = graph.updateGroupNode(
@@ -266,7 +258,6 @@ function ProcesGroupForm(e: FullFormType): FormReturn {
   }
 
   if (updateRequests.length > 0) {
-    console.log(updateRequests);
     const requests: GoogleAppsScript.URL_Fetch.URLFetchRequest[] = updateRequests.map((r) => {
       return {
         method: r.method,

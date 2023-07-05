@@ -210,10 +210,16 @@
                               <div class="child-row">
                                 <div class="mdc-touch-target-wrapper">
                                   <div class="mdc-checkbox mdc-checkbox--touch">
+                                    <!-- prettier-ignore -->
                                     <input
                                       type="checkbox"
                                       class="mdc-checkbox__native-control"
                                       id="checkbox-1"
+                                      name="<?= TasksHtml.GetId(root) ?>"
+                                      onclick="handleCheckboxClick('<?= TasksHtml.GetId(root) ?>', this)"
+                                      <? if (TasksHtml.IsTaskCompleted(root)) { ?>
+                                    checked
+                                    <? } ?>
                                     />
                                     <div class="mdc-checkbox__background">
                                       <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
@@ -259,10 +265,16 @@
                                   <div class="child-row">
                                     <div class="mdc-touch-target-wrapper">
                                       <div class="mdc-checkbox mdc-checkbox--touch">
+                                        <!-- prettier-ignore -->
                                         <input
                                           type="checkbox"
                                           class="mdc-checkbox__native-control"
                                           id="checkbox-1"
+                                          name="<?= TasksHtml.GetId(firstChild) ?>"
+                                          onclick="handleCheckboxClick('<?= TasksHtml.GetId(firstChild) ?>', this)"
+                                          <? if (TasksHtml.IsTaskCompleted(firstChild)) { ?>
+                                        checked
+                                        <? } ?>
                                         />
                                         <div class="mdc-checkbox__background">
                                           <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
@@ -281,7 +293,7 @@
                                     <div class="mdc-touch-target-wrapper">
                                       <button
                                         class="mdc-icon-button"
-                                        onclick="handleEditClick(<?= TasksHtml.IsGroup(firstChild) ?>, '<?= TasksHtml.GetId(firstChild) ?>')"
+                                        onclick="handleEditClick(<?= TasksHtml.IsGroup(firstChild) ?>, '<?= TasksHtml.GetId(firstChild) ?>', this)"
                                       >
                                         <div class="mdc-icon-button__ripple"></div>
                                         <span class="mdc-icon-button__focus-ring"></span>
@@ -305,23 +317,52 @@
                                        for (const secondChild of secondChildren) { ?>
                                     <!-- Text container segment -->
                                     <div class="child-col mdc-ripple-surface node-text">
-                                      <span class="mdc-typography--body1"
-                                        ><?= TasksHtml.GetText(secondChild) ?></span
-                                      >
                                       <div class="child-row">
-                                        <div class="spacer"></div>
-                                        <button
-                                          class="mdc-button mdc-button--icon-leading"
-                                          onclick="handleEditClick(<?= TasksHtml.IsGroup(secondChild) ?>, '<?= TasksHtml.GetId(secondChild) ?>')"
-                                        >
-                                          <span class="mdc-button__ripple"></span>
-                                          <span class="mdc-button__focus-ring"></span>
-                                          <i
-                                            class="material-icons mdc-button__icon"
-                                            aria-hidden="true"
-                                            >edit</i
+                                        <div class="mdc-touch-target-wrapper">
+                                          <div class="mdc-checkbox mdc-checkbox--touch">
+                                            <!-- prettier-ignore -->
+                                            <input
+                                          type="checkbox"
+                                          class="mdc-checkbox__native-control"
+                                          id="checkbox-1"
+                                          name="<?= TasksHtml.GetId(secondChild) ?>"
+                                          onclick="handleCheckboxClick('<?= TasksHtml.GetId(secondChild) ?>', this)"
+                                          <? if (TasksHtml.IsTaskCompleted(secondChild)) { ?>
+                                            checked
+                                            <? } ?>
+                                            />
+                                            <div class="mdc-checkbox__background">
+                                              <svg
+                                                class="mdc-checkbox__checkmark"
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  class="mdc-checkbox__checkmark-path"
+                                                  fill="none"
+                                                  d="M1.73,12.91 8.1,19.28 22.79,4.59"
+                                                />
+                                              </svg>
+                                              <div class="mdc-checkbox__mixedmark"></div>
+                                            </div>
+                                            <div class="mdc-checkbox__ripple"></div>
+                                            <div class="mdc-checkbox__focus-ring"></div>
+                                          </div>
+                                        </div>
+                                        <div class="mdc-touch-target-wrapper">
+                                          <button
+                                            class="mdc-icon-button"
+                                            onclick="handleEditClick(<?= TasksHtml.IsGroup(secondChild) ?>, '<?= TasksHtml.GetId(secondChild) ?>', this)"
                                           >
-                                        </button>
+                                            <div class="mdc-icon-button__ripple"></div>
+                                            <span class="mdc-icon-button__focus-ring"></span>
+                                            <i class="material-icons">edit</i>
+                                          </button>
+                                        </div>
+                                        <div class="child-col">
+                                          <span class="mdc-typography--body1"
+                                            ><?= TasksHtml.GetText(secondChild) ?></span
+                                          >
+                                        </div>
                                       </div>
                                     </div>
                                     <? } ?>
@@ -352,6 +393,7 @@
       var drawer;
       var addMenu;
       var linearProgress;
+      var checkboxes = [];
       window.addEventListener("load", () => {
         // Create ripples.
         const selector = ".mdc-button, .mdc-icon-button, .mdc-card__primary-action";
@@ -377,7 +419,11 @@
         };
 
         document.querySelectorAll('.mdc-checkbox').forEach(el => {
-          mdc.checkbox.MDCCheckbox.attachTo(el);
+          const checkbox = mdc.checkbox.MDCCheckbox.attachTo(el);
+          checkbox.handleChange = (f) => {
+            console.log("handleChange", f, checkbox);
+          }
+          checkboxes.push(checkbox);
         });
 
         linearProgress = mdc.linearProgress.MDCLinearProgress.attachTo(
@@ -392,6 +438,25 @@
       }
       function handleAddBtnClick() {
         addMenu.open = true;
+      }
+      function handleCheckboxClick(id, element) {
+        linearProgress.foundation.open();
+        element.disabled = true;
+        console.log(id);
+        google.script.run
+          .withSuccessHandler((resp) => {
+            element.disabled = false;
+            linearProgress.foundation.close();
+            if (!resp.ok) {
+              element.checked = !element.checked;
+            }
+          })
+          .withFailureHandler(() => {
+            element.disabled = false;
+            element.checked = !element.checked;
+            linearProgress.foundation.close();
+          })
+          .AttemptChangeTaskComplete(id, element.checked);
       }
       function handleEditClick(isGroup, id, element) {
         console.log(isGroup, id, element);

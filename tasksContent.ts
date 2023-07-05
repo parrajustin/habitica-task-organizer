@@ -1,4 +1,7 @@
+import { Guards } from "./assert";
 import { Habitica } from "./habitica";
+import { Ok } from "./result";
+import { Utils } from "./utils";
 
 export namespace TasksHtml {
   /**
@@ -51,6 +54,15 @@ export namespace TasksHtml {
   }
 
   /**
+   * Checks if a task is completed.
+   * @param node node to inspect
+   * @returns true if the task is marked completed
+   */
+  export function IsTaskCompleted(node: Habitica.TaskNodeType): boolean {
+    return node.data.completed;
+  }
+
+  /**
    * Gets the id of a node.
    * @param node
    * @returns string id
@@ -76,4 +88,30 @@ export namespace TasksHtml {
     // Logger.log(HtmlService.createTemplateFromFile("tasks").getCodeWithComments());
     return HtmlService.createTemplateFromFile("tasks").evaluate();
   }
+}
+
+/**
+ * Attempts to change a task complete state.
+ * @param id id of node to update
+ * @param complete the new complete state
+ * @returns response of operation
+ */
+export function AttemptChangeTaskComplete(
+  id: string,
+  complete: boolean
+): { ok: boolean; error?: string } {
+  console.log("AttemptChangeTaskComplete", id, complete);
+  const maybeGraph = Habitica.GetTaskGraph();
+  if (maybeGraph.err) {
+    return { ok: false, error: maybeGraph.val };
+  }
+  Guards.assert<Ok<Habitica.TaskGraph>>(maybeGraph);
+  const graph = maybeGraph.safeUnwrap();
+
+  const result = graph.changeNodeCompleteState(id, complete);
+  if (result.err) {
+    return { ok: false, error: result.val };
+  }
+
+  return Utils.ExecuteGraphUpdate(graph);
 }

@@ -275,7 +275,7 @@ export namespace Habitica {
   export class TaskGraph {
     private nodes: TaskNodeType[] = [];
     private rootNodes: TaskNodeType[] = [];
-    private modifiedNodes: TaskNodeType[] = [];
+    private modifiedNodes: { [id: string]: { reasons: string[]; node: TaskNodeType } } = {};
     private idToNodes: { [key: string]: TaskNodeType | undefined } = {};
     private lzString = new LZString.LZString();
     private uid = new ShortUniqueId.ShortUniqueId();
@@ -356,8 +356,13 @@ export namespace Habitica {
      */
     public convertModifiedToUpdates(): UpdateRequest[] {
       const requests: UpdateRequest[] = [];
-      for (const node of this.modifiedNodes) {
-        requests.push(this.convertNodeToUpdate(node));
+      for (const key of Object.keys(this.modifiedNodes)) {
+        const modification = this.modifiedNodes[key];
+        console.log(
+          `Updating "${modification.node.id.data}" due to (${modification.reasons.join("|")}).`
+        );
+
+        requests.push(this.convertNodeToUpdate(modification.node));
       }
       return requests;
     }
@@ -481,6 +486,32 @@ export namespace Habitica {
     }
 
     /**
+     * Attempts to change the complete state of a task node, result is ok if there was a change.
+     * @param id id of node to update
+     * @param complete the new complete state
+     * @returns result of the operation
+     */
+    public changeNodeCompleteState(
+      id: string,
+      complete: boolean
+    ): Result<null, "Couldn't find node" | "no change"> {
+      const nodeToUpdate = this.findNode(id);
+      if (nodeToUpdate.none) {
+        return Result.Err("Couldn't find node");
+      }
+      Guards.assert<Ok<GroupTaskNode>>(nodeToUpdate);
+
+      const node = nodeToUpdate.safeUnwrap();
+      if (node.data.completed === complete) {
+        return Result.Err("no change");
+      }
+
+      this.addModified(node, `Changed "completed" (${node.data.completed} => ${complete}).`);
+      node.data.completed = complete;
+      return Result.Ok(null);
+    }
+
+    /**
      * Updates a given group node with the information, Result is ok if there was a change.
      * @param id id of group node to update
      * @param text text to set for group node
@@ -507,31 +538,34 @@ export namespace Habitica {
       }
 
       Guards.assert<Ok<GroupTaskNode>>(groupToUpdate);
+      const group = groupToUpdate.safeUnwrap();
       let hasAnyChange = false;
-      let changedGroupNode = false;
 
       // Check if there is any change in the description.
-      if (groupToUpdate.safeUnwrap().data.description !== text) {
+      if (group.data.description !== text) {
         hasAnyChange = true;
-        changedGroupNode = true;
-        groupToUpdate.safeUnwrap().data.description = text;
+        this.addModified(group, `Changed desc "${group.data.description}" => "${text}".`);
+        group.data.description = text;
       }
 
       // Check if there is any change in the parent group.
       const parent = parentId.some ? this.findGroupNodeFromRaw(parentId.safeUnwrap()) : Option.None;
-      const doesNotHaveParent = groupToUpdate.safeUnwrap().prev === undefined;
+      const doesNotHaveParent = group.prev === undefined;
       const currentParentDoesNotMatch =
         parent.some &&
-        groupToUpdate.safeUnwrap().prev !== undefined &&
-        parent.safeUnwrap().id.data != groupToUpdate.safeUnwrap().prev.id.data;
-      const removedParent = parent.none && groupToUpdate.safeUnwrap().prev !== undefined;
+        group.prev !== undefined &&
+        parent.safeUnwrap().id.data != group.prev.id.data;
+      const removedParent = parent.none && group.prev !== undefined;
       if ((parent.some && (doesNotHaveParent || currentParentDoesNotMatch)) || removedParent) {
         hasAnyChange = true;
-        changedGroupNode = true;
-        groupToUpdate.safeUnwrap().data.parentGroupId = parent.some
-          ? parent.safeUnwrap().data.id
-          : undefined;
-        groupToUpdate.safeUnwrap().prev = parent.some ? parent.safeUnwrap() : undefined;
+        this.addModified(
+          group,
+          `Changed parent "${group.data.parentGroupId?.data}" => "${
+            parent.some ? parent.safeUnwrap().data.id : "undefined"
+          }".`
+        );
+        group.data.parentGroupId = parent.some ? parent.safeUnwrap().data.id : undefined;
+        group.prev = parent.some ? parent.safeUnwrap() : undefined;
       }
 
       // Get all nodes that currently have this group.
@@ -539,13 +573,10 @@ export namespace Habitica {
         switch (n.type) {
           case "GROUP":
             return (
-              n.data.parentGroupId !== undefined &&
-              n.data.parentGroupId.data === groupToUpdate.safeUnwrap().id.data
+              n.data.parentGroupId !== undefined && n.data.parentGroupId.data === group.id.data
             );
           case "ITEM":
-            return (
-              n.data.group !== undefined && n.data.group.data === groupToUpdate.safeUnwrap().id.data
-            );
+            return n.data.group !== undefined && n.data.group.data === group.id.data;
         }
       });
 
@@ -555,13 +586,10 @@ export namespace Habitica {
       });
       for (const removal of removedNodes) {
         hasAnyChange = true;
-        this.modifiedNodes.push(removal);
+        this.addModified(removal, `Removing parent group.`);
 
         // Remove the prev if it is of this type's group.
-        if (
-          removal.prev !== undefined &&
-          removal.prev.id.data === groupToUpdate.safeUnwrap().id.data
-        ) {
+        if (removal.prev !== undefined && removal.prev.id.data === group.id.data) {
           removal.prev = undefined;
         }
 
@@ -584,26 +612,22 @@ export namespace Habitica {
         if (nodeOption.some) {
           const node = nodeOption.safeUnwrap();
           hasAnyChange = true;
-          this.modifiedNodes.push(node);
+          this.addModified(node, `Changing parent to "${group.data.id}".`);
 
-          node.prev = groupToUpdate.safeUnwrap();
+          node.prev = group;
           switch (node.type) {
             case "GROUP":
-              node.data.parentGroupId = groupToUpdate.safeUnwrap().data.id;
+              node.data.parentGroupId = group.data.id;
               break;
             case "ITEM":
-              node.data.group = groupToUpdate.safeUnwrap().data.id;
+              node.data.group = group.data.id;
               break;
           }
         }
       }
 
-      if (this.groupHasLoop(groupToUpdate.safeUnwrap())) {
+      if (this.groupHasLoop(group)) {
         return Result.Err("Has cyclical loop");
-      }
-
-      if (changedGroupNode) {
-        this.modifiedNodes.push(groupToUpdate.safeUnwrap());
       }
 
       if (hasAnyChange) {
@@ -658,7 +682,7 @@ export namespace Habitica {
         if (node.some) {
           // If found set the node into the modified nodes array.
           const val = node.safeUnwrap();
-          this.modifiedNodes.push(val);
+          this.addModified(val, `Setting new parent.`);
           foundDeps.push(val);
           // TODO(jrparra): For item nodes this should only be done in certain conditions. Only
           // necessary to fix in a stateful environment.
@@ -683,7 +707,7 @@ export namespace Habitica {
 
       // Add this node to the array of nodes.
       this.nodes.push(groupNode);
-      this.modifiedNodes.push(groupNode);
+      this.addModified(groupNode, "Create new group node.");
       if (groupNode.prev === undefined) {
         this.rootNodes.push(groupNode);
       }
@@ -698,7 +722,10 @@ export namespace Habitica {
       if (node.data.parentGroupId !== undefined) {
         const parent = this.getGroupNode(node.data.parentGroupId);
         if (parent.none) {
+          // It has a parent but we could not find it. We need to remove it and set this node into
+          // the modified nodes array.
           node.data.parentGroupId = undefined;
+          this.addModified(node, `Group "${node.data.parentGroupId.data}" not found.`);
         } else if (parent.some) {
           const parentNode = parent.safeUnwrap();
           parentNode.next.push(node);
@@ -713,7 +740,9 @@ export namespace Habitica {
      */
     private updateItemNode(node: ItemTaskNode) {
       const parent = this.getGroupNode(node.data.group);
-      if (parent.none) {
+      if (parent.none && node.data.group !== undefined) {
+        // No parent found but this node has one. We need to remove it and mark for update.
+        this.addModified(node, `Group "${node.data.group.data}" not found.`);
         node.data.group = undefined;
       }
 
@@ -746,6 +775,9 @@ export namespace Habitica {
           const fetchedDep = this.getItemNode(dep);
           if (fetchedDep.some) {
             deps.push(dep);
+          } else if (fetchedDep.none) {
+            // We are missing a depdency task, mark node for update to remove it.
+            this.addModified(node, `Missing depedency on "${dep}".`);
           }
         }
       }
@@ -890,6 +922,22 @@ export namespace Habitica {
       }
 
       return false;
+    }
+
+    /**
+     * Adds a node to the modified list with a reason.
+     * @param node node to add to modified list
+     * @param reason reason for the node to be modified
+     */
+    private addModified(node: TaskNodeType, reason: string) {
+      if (this.modifiedNodes[node.id.data] !== undefined) {
+        this.modifiedNodes[node.id.data].reasons.push(reason);
+      } else {
+        this.modifiedNodes[node.id.data] = {
+          reasons: [reason],
+          node,
+        };
+      }
     }
   }
 
