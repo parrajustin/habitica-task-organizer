@@ -644,7 +644,7 @@ export namespace Habitica {
         if (nodeOption.some) {
           const node = nodeOption.safeUnwrap();
           hasAnyChange = true;
-          this.addModified(node, `Changing parent to "${group.data.id}".`);
+          this.addModified(node, `Changing parent to "${group.data.id.data}".`);
 
           node.prev = group;
           switch (node.type) {

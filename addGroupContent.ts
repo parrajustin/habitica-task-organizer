@@ -1,6 +1,8 @@
+import { Guards } from "./assert";
 import { Habitica } from "./habitica";
 import { Option } from "./option";
 import { Ok } from "./result";
+import { Utils } from "./utils";
 
 let selectedGroup: Habitica.GroupTaskNode | null = null;
 
@@ -225,6 +227,11 @@ interface FormReturn {
 function ProcesGroupForm(e: FullFormType): FormReturn {
   console.log("ProcesGroupForm", e);
   const maybeGraph = Habitica.GetTaskGraph();
+  if (maybeGraph.err) {
+    return { ok: false, error: maybeGraph.val };
+  }
+  Guards.assert<Ok<Habitica.TaskGraph>>(maybeGraph);
+  const graph = maybeGraph.safeUnwrap();
 
   if (e.text === "") {
     return { ok: false, error: "Text must not be ''." };
@@ -233,18 +240,10 @@ function ProcesGroupForm(e: FullFormType): FormReturn {
   const deps = Object.keys(e).filter(
     (i) => i !== "text" && i !== "parent" && i !== "selectedGroup"
   );
-  let updateRequests: Habitica.UpdateRequest[] = [];
-  if (maybeGraph.ok && e.selectedGroup === undefined) {
+  if (e.selectedGroup === undefined) {
     console.log("Create Group Node");
-    const graph = maybeGraph.safeUnwrap();
-
     graph.createNewGroupNode(e.text, e.parent !== "" ? Option.Some(e.parent) : Option.None, deps);
-    updateRequests = graph.convertModifiedToUpdates();
-  }
-
-  if (maybeGraph.ok && e.selectedGroup !== undefined && e.selectedGroup !== "") {
-    const graph = maybeGraph.safeUnwrap();
-
+  } else if (e.selectedGroup !== undefined && e.selectedGroup !== "") {
     const result = graph.updateGroupNode(
       e.selectedGroup,
       e.text,
@@ -254,36 +253,7 @@ function ProcesGroupForm(e: FullFormType): FormReturn {
     if (!result.ok) {
       return { ok: false, error: result.val };
     }
-    updateRequests = graph.convertModifiedToUpdates();
   }
 
-  if (updateRequests.length > 0) {
-    const requests: GoogleAppsScript.URL_Fetch.URLFetchRequest[] = updateRequests.map((r) => {
-      return {
-        method: r.method,
-        url: r.url,
-        payload: JSON.stringify({
-          text: r.itemText,
-          completed: r.completed,
-        }),
-
-        headers: {
-          "x-api-key": apiKey,
-          "x-api-user": apiUser,
-          "content-type": "application/json",
-        },
-        muteHttpExceptions: true,
-      };
-    });
-    const response = UrlFetchApp.fetchAll(requests);
-    const successCount = response.filter((r) => r.getResponseCode() === 200).length;
-    const failedCount = response.filter((r) => r.getResponseCode() === 404).length;
-
-    return {
-      ok: successCount > failedCount,
-      error: failedCount !== 0 ? `Success: ${successCount}, Failed: ${failedCount}` : undefined,
-    };
-  }
-
-  return { ok: false, error: "No response from habitica api!" };
+  return Utils.ExecuteGraphUpdate(graph);
 }
