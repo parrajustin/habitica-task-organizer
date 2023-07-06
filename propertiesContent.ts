@@ -58,10 +58,9 @@ function ProcessPropertiesForm(e: {
   "api-user": string;
   "task-prefix": string;
   "api-key": string;
-}): boolean {
+}) {
   const userProperties = PropertiesService.getUserProperties();
   userProperties.setProperty("API_USER", e["api-user"]);
   userProperties.setProperty("TASK_SORT_PREFIX", e["task-prefix"]);
   userProperties.setProperty("API_KEY", e["api-key"]);
-  return true;
 }

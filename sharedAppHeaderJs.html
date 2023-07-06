@@ -4,6 +4,7 @@
   var appDrawer;
   var appQuickMenu;
   var appHeaderProgress;
+  var appSnackbar;
   window.addEventListener("load", () => {
     // Create ripples for all selectors.
     const selector = ".mdc-button, .mdc-icon-button, .mdc-card__primary-action, .mdc-fab";
@@ -33,6 +34,8 @@
     );
     appHeaderProgress.foundation.setDeterminate(false);
     appHeaderProgress.foundation.close();
+
+    appSnackbar = mdc.snackbar.MDCSnackbar.attachTo(document.querySelector(".mdc-snackbar"));
   });
 
   function handleHeaderMenuClick() {
@@ -40,5 +43,10 @@
   }
   function handleHeaderAddBtnClick() {
     appQuickMenu.open = true;
+  }
+
+  function openSnackbar(str) {
+    document.querySelector(".mdc-snackbar__label").innerText = str;
+    appSnackbar.open();
   }
 </script>

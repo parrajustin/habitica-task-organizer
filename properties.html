@@ -207,21 +207,11 @@
         userFormField.input = userTextField;
       });
 
-      function processSuccess(success) {
+      function processSuccess() {
         appHeaderProgress.foundation.close();
-        const hadValidProperites = "<?= PropertiesForm.HasValidProperties() ?>" === "true";
-        // const snackbarContainer = document.querySelector("#toast");
-        // const data = { message: "was successful" };
-        // if (!hadValidProperites) {
-        //   data["timeout"] = 100000;
-        //   data["actionText"] = "Goto Tasks";
-        //   data["actionHandler"] = () => {
-        //     navigateHome();
-        //   };
-        // }
+        openSnackbar("Successfully updated settings!");
         document.querySelector("#returnBtn").disabled = false;
         document.querySelector("#submitBtn").disabled = false;
-        // snackbarContainer.MaterialSnackbar.showSnackbar(data);
       }
       /* Handle the form submit but sending request to app script backend. */
       function handleFormSubmit(formObject) {
