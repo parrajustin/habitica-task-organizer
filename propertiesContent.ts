@@ -26,20 +26,13 @@ export namespace PropertiesForm {
     return userProperties.getProperty("API_USER");
   }
 
-  export function HasValidProperites(): boolean {
+  export function HasValidProperties(): boolean {
     const userProperties = PropertiesService.getUserProperties();
     const apiKey = userProperties.getProperty("API_KEY");
     const apiUser = userProperties.getProperty("API_USER");
     const taskSortPrefix = userProperties.getProperty("TASK_SORT_PREFIX");
 
     return apiKey !== null && apiUser !== null && taskSortPrefix !== null;
-  }
-
-  /**
-   * Get the URL for the Google Apps Script running as a WebApp.
-   */
-  export function GetScriptUrl(): string {
-    return ScriptApp.getService().getUrl();
   }
 
   /**
@@ -61,10 +54,14 @@ export namespace PropertiesForm {
  * @param e form object
  * @returns if it was successful
  */
-function ProcessPropertiesForm(e: { user: string; prefix: string; key: string }): boolean {
+function ProcessPropertiesForm(e: {
+  "api-user": string;
+  "task-prefix": string;
+  "api-key": string;
+}): boolean {
   const userProperties = PropertiesService.getUserProperties();
-  userProperties.setProperty("API_USER", e.user);
-  userProperties.setProperty("TASK_SORT_PREFIX", e.prefix);
-  userProperties.setProperty("API_KEY", e.key);
+  userProperties.setProperty("API_USER", e["api-user"]);
+  userProperties.setProperty("TASK_SORT_PREFIX", e["task-prefix"]);
+  userProperties.setProperty("API_KEY", e["api-key"]);
   return true;
 }

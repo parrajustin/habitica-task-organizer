@@ -267,7 +267,6 @@ function RunHabitica() {
 function doGet(
   e: GoogleAppsScript.Events.AppsScriptHttpRequestEvent
 ): GoogleAppsScript.HTML.HtmlOutput {
-  Logger.log("doget", e);
   const userProperties = PropertiesService.getUserProperties();
 
   if (e.parameter["deleteProperties"] !== undefined) {
@@ -290,7 +289,6 @@ function doGet(
     );
   }
 
-  Logger.log("addgroup index", e.parameter["path"], e.parameter["path"] === "addGroup");
   if (e.parameter["path"] === "addGroup") {
     console.log("entering add group");
     return AddGroupHtml.GetHtmlPage(e).addMetaTag(

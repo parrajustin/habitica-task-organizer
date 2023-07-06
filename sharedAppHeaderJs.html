@@ -1,0 +1,44 @@
+<!-- Store data passed to template here, so it is available to the imported JavaScript. -->
+<script>
+  var allRipples;
+  var appDrawer;
+  var appQuickMenu;
+  var appHeaderProgress;
+  window.addEventListener("load", () => {
+    // Create ripples for all selectors.
+    const selector = ".mdc-button, .mdc-icon-button, .mdc-card__primary-action, .mdc-fab";
+    ripples = [].map.call(document.querySelectorAll(selector), (el) => {
+      return mdc.ripple.MDCRipple.attachTo(el);
+    });
+
+    // Create the top bar.
+    const topAppBarElement = document.querySelector(".mdc-top-app-bar");
+    mdc.topAppBar.MDCTopAppBar.attachTo(topAppBarElement);
+
+    // Create the side drawer.
+    appDrawer = mdc.drawer.MDCDrawer.attachTo(document.querySelector(".mdc-drawer"));
+
+    // Create add menu.
+    appQuickMenu = mdc.menu.MDCMenu.attachTo(document.querySelector(".mdc-menu"));
+    appQuickMenu.foundation.adapter.notifySelected = (t) => {
+      if (t.index === 0) {
+        window.top.location.href = "<?= Utils.GetScriptUrl('?path=addGroup') ?>";
+      } else if (t.index === 1) {
+        window.top.location.href = "<?= Utils.GetScriptUrl('?path=addItem') ?>";
+      }
+    };
+
+    appHeaderProgress = mdc.linearProgress.MDCLinearProgress.attachTo(
+      document.querySelector(".mdc-linear-progress")
+    );
+    appHeaderProgress.foundation.setDeterminate(false);
+    appHeaderProgress.foundation.close();
+  });
+
+  function handleHeaderMenuClick() {
+    appDrawer.open = true;
+  }
+  function handleHeaderAddBtnClick() {
+    appQuickMenu.open = true;
+  }
+</script>

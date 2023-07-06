@@ -1,0 +1,95 @@
+<header class="mdc-top-app-bar mdc-top-app-bar--fixed">
+  <div class="mdc-top-app-bar__row">
+    <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+      <button
+        class="material-icons mdc-top-app-bar__navigation-icon mdc-icon-button"
+        onclick="handleHeaderMenuClick()"
+      >
+        menu
+      </button>
+      <span class="mdc-top-app-bar__title">Habitica Tasks</span>
+    </section>
+    <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
+      <div class="mdc-menu-surface--anchor">
+        <button
+          class="material-icons mdc-top-app-bar__action-item mdc-icon-button"
+          aria-label="Add task/group"
+          onclick="handleHeaderAddBtnClick()"
+        >
+          add
+        </button>
+        <div class="mdc-menu mdc-menu-surface">
+          <ul
+            class="mdc-deprecated-list"
+            role="menu"
+            aria-hidden="true"
+            aria-orientation="vertical"
+            tabindex="-1"
+          >
+            <li class="mdc-deprecated-list-item" role="menuitem">
+              <span class="mdc-deprecated-list-item__ripple"></span>
+              <span class="mdc-deprecated-list-item__text">Add New Group</span>
+            </li>
+            <li class="mdc-deprecated-list-item" role="menuitem">
+              <span class="mdc-deprecated-list-item__ripple"></span>
+              <span class="mdc-deprecated-list-item__text">Add New Task</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div
+    role="progressbar"
+    class="mdc-linear-progress"
+    aria-label="progress bar"
+    aria-valuemin="0"
+    aria-valuemax="1"
+    aria-valuenow="0"
+  >
+    <div class="mdc-linear-progress__buffer">
+      <div class="mdc-linear-progress__buffer-bar"></div>
+      <div class="mdc-linear-progress__buffer-dots"></div>
+    </div>
+    <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+      <span class="mdc-linear-progress__bar-inner"></span>
+    </div>
+    <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+      <span class="mdc-linear-progress__bar-inner"></span>
+    </div>
+  </div>
+</header>
+
+<aside class="mdc-drawer mdc-drawer--modal">
+  <div class="mdc-drawer__content">
+    <nav class="mdc-deprecated-list">
+      <a
+        class="mdc-deprecated-list-item mdc-deprecated-list-item--activated"
+        href="<?= Utils.GetScriptUrl('') ?>"
+        aria-current="page"
+        tabindex="0"
+      >
+        <span class="mdc-deprecated-list-item__ripple"></span>
+        <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">home</i>
+        <span class="mdc-deprecated-list-item__text">Tasks</span>
+      </a>
+      <a class="mdc-deprecated-list-item" href="#">
+        <span class="mdc-deprecated-list-item__ripple"></span>
+        <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">edit</i>
+        <span class="mdc-deprecated-list-item__text">Add Group</span>
+      </a>
+      <a class="mdc-deprecated-list-item" href="#">
+        <span class="mdc-deprecated-list-item__ripple"></span>
+        <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">edit</i>
+        <span class="mdc-deprecated-list-item__text">Add Item</span>
+      </a>
+      <a class="mdc-deprecated-list-item" href="<?= Utils.GetScriptUrl('?path=props') ?>">
+        <span class="mdc-deprecated-list-item__ripple"></span>
+        <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">settings</i>
+        <span class="mdc-deprecated-list-item__text">Settings</span>
+      </a>
+    </nav>
+  </div>
+</aside>
+<div class="mdc-drawer-scrim"></div>

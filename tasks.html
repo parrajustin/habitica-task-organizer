@@ -18,39 +18,8 @@
 <html>
   <head>
     <base target="_top" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"
-    />
-    <!-- Required Material Web JavaScript library -->
-    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <?!= HtmlService.createTemplateFromFile("sharedHeaderIncludes").evaluate().getContent() ?>
     <style>
-      :root {
-        --mdc-theme-primary: #344955;
-        --mdc-theme-secondary: #f9aa33;
-        font-size: large;
-
-        .mdc-drawer .mdc-deprecated-list-item--activated {
-          color: var(--mdc-theme-secondary);
-        }
-
-        .mdc-drawer .mdc-deprecated-list-item--activated .mdc-deprecated-list-item__graphic {
-          color: var(--mdc-theme-secondary);
-        }
-      }
-
-      html {
-        overflow-x: hidden;
-      }
-
-      body {
-        margin: 0;
-        width: 100vw;
-        height: 100vh;
-      }
-
       .mdl-layout__content {
         display: flex;
         justify-content: center;
@@ -110,102 +79,10 @@
     </style>
   </head>
   <body>
-    <header class="mdc-top-app-bar mdc-top-app-bar--fixed">
-      <div class="mdc-top-app-bar__row">
-        <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
-          <button
-            class="material-icons mdc-top-app-bar__navigation-icon mdc-icon-button"
-            onclick="handleMenuClick()"
-          >
-            menu
-          </button>
-          <span class="mdc-top-app-bar__title">Habitica Tasks</span>
-        </section>
-        <section
-          class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end"
-          role="toolbar"
-        >
-          <div class="mdc-menu-surface--anchor">
-            <button
-              class="material-icons mdc-top-app-bar__action-item mdc-icon-button"
-              aria-label="Add task/group"
-              onclick="handleAddBtnClick()"
-            >
-              add
-            </button>
-            <div class="mdc-menu mdc-menu-surface">
-              <ul
-                class="mdc-deprecated-list"
-                role="menu"
-                aria-hidden="true"
-                aria-orientation="vertical"
-                tabindex="-1"
-              >
-                <li class="mdc-deprecated-list-item" role="menuitem">
-                  <span class="mdc-deprecated-list-item__ripple"></span>
-                  <span class="mdc-deprecated-list-item__text">Add New Group</span>
-                </li>
-                <li class="mdc-deprecated-list-item" role="menuitem">
-                  <span class="mdc-deprecated-list-item__ripple"></span>
-                  <span class="mdc-deprecated-list-item__text">Add New Task</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </section>
-      </div>
+    <!-- Include the top app bar and drawer content -->
+    <?!= HtmlService.createTemplateFromFile("sharedAppHeader").evaluate().getContent() ?>
 
-      <div
-        role="progressbar"
-        class="mdc-linear-progress"
-        aria-label="progress bar"
-        aria-valuemin="0"
-        aria-valuemax="1"
-        aria-valuenow="0"
-      >
-        <div class="mdc-linear-progress__buffer">
-          <div class="mdc-linear-progress__buffer-bar"></div>
-          <div class="mdc-linear-progress__buffer-dots"></div>
-        </div>
-        <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
-          <span class="mdc-linear-progress__bar-inner"></span>
-        </div>
-        <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
-          <span class="mdc-linear-progress__bar-inner"></span>
-        </div>
-      </div>
-    </header>
-
-    <aside class="mdc-drawer mdc-drawer--modal">
-      <div class="mdc-drawer__content">
-        <nav class="mdc-deprecated-list">
-          <a
-            class="mdc-deprecated-list-item mdc-deprecated-list-item--activated"
-            href="#"
-            aria-current="page"
-            tabindex="0"
-          >
-            <span class="mdc-deprecated-list-item__ripple"></span>
-            <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">inbox</i>
-            <span class="mdc-deprecated-list-item__text">Inbox</span>
-          </a>
-          <a class="mdc-deprecated-list-item" href="#">
-            <span class="mdc-deprecated-list-item__ripple"></span>
-            <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">send</i>
-            <span class="mdc-deprecated-list-item__text">Outgoing</span>
-          </a>
-          <a class="mdc-deprecated-list-item" href="#">
-            <span class="mdc-deprecated-list-item__ripple"></span>
-            <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true"
-              >drafts</i
-            >
-            <span class="mdc-deprecated-list-item__text">Drafts</span>
-          </a>
-        </nav>
-      </div>
-    </aside>
-    <div class="mdc-drawer-scrim"></div>
-
+    <!-- Main html content -->
     <main class="mdc-top-app-bar--fixed-adjust">
       <div class="mdc-layout-grid">
         <div class="mdc-layout-grid__inner">
@@ -523,39 +400,13 @@
       </div>
     </aside>
     <!-- Store data passed to template here, so it is available to the imported JavaScript. -->
+    <?!= HtmlService.createTemplateFromFile("sharedAppHeaderJs").evaluate().getContent() ?>
     <script>
-      var ripples;
-      var drawer;
-      var addMenu;
-      var linearProgress;
       var checkboxes = [];
       var quickTask;
       var quickTaskProgress;
       var snackbar;
       window.addEventListener("load", () => {
-        // Create ripples.
-        const selector = ".mdc-button, .mdc-icon-button, .mdc-card__primary-action, .mdc-fab";
-        ripples = [].map.call(document.querySelectorAll(selector), (el) => {
-          return mdc.ripple.MDCRipple.attachTo(el);
-        });
-
-        // Create top bar.
-        const topAppBarElement = document.querySelector(".mdc-top-app-bar");
-        mdc.topAppBar.MDCTopAppBar.attachTo(topAppBarElement);
-
-        // Create drawer.
-        drawer = mdc.drawer.MDCDrawer.attachTo(document.querySelector(".mdc-drawer"));
-
-        // Create add menu.
-        addMenu = mdc.menu.MDCMenu.attachTo(document.querySelector(".mdc-menu"));
-        addMenu.foundation.adapter.notifySelected = (t) => {
-          if (t.index === 0) {
-            window.top.location.href = "<?= Utils.GetScriptUrl('?path=addGroup') ?>";
-          } else if (t.index === 1) {
-            window.top.location.href = "<?= Utils.GetScriptUrl('?path=addItem') ?>";
-          }
-        };
-
         document.querySelectorAll(".mdc-checkbox").forEach((el) => {
           const checkbox = mdc.checkbox.MDCCheckbox.attachTo(el);
           checkbox.handleChange = (f) => {
@@ -563,12 +414,6 @@
           };
           checkboxes.push(checkbox);
         });
-
-        linearProgress = mdc.linearProgress.MDCLinearProgress.attachTo(
-          document.querySelector(".mdc-linear-progress")
-        );
-        linearProgress.foundation.setDeterminate(false);
-        linearProgress.foundation.close();
 
         quickTask = mdc.textField.MDCTextField.attachTo(document.querySelector(".mdc-text-field"));
         quickTask.foundation.adapter.registerInputInteractionHandler("focusout", (e) => {
@@ -629,12 +474,12 @@
         addMenu.open = true;
       }
       function handleCheckboxClick(id, element) {
-        linearProgress.foundation.open();
+        appHeaderProgress.foundation.open();
         element.disabled = true;
         google.script.run
           .withSuccessHandler((resp) => {
             element.disabled = false;
-            linearProgress.foundation.close();
+            appHeaderProgress.foundation.close();
             if (!resp.ok) {
               element.checked = !element.checked;
               snackbar.open();
@@ -653,7 +498,7 @@
             ).innerText = `Unknown error when attempting to modify complete state.`;
             element.disabled = false;
             element.checked = !element.checked;
-            linearProgress.foundation.close();
+            appHeaderProgress.foundation.close();
           })
           .AttemptChangeTaskComplete(id, element.checked);
       }
@@ -665,7 +510,7 @@
         });
       }
       function handleEditClick(isGroup, id, element) {
-        linearProgress.open();
+        appHeaderProgress.open();
         element.disabled = true;
         if (isGroup === "true") {
           const baseUrl = "<?= Utils.GetScriptUrl('?path=addGroup') ?>";
