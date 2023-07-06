@@ -391,21 +391,12 @@
       </button>
     </div>
 
-    <!-- Snackbar -->
-    <aside class="mdc-snackbar">
-      <div class="mdc-snackbar__surface" role="status" aria-relevant="additions">
-        <div class="mdc-snackbar__label" aria-atomic="false">
-          Can't send photo. Retry in 5 seconds.
-        </div>
-      </div>
-    </aside>
     <!-- Store data passed to template here, so it is available to the imported JavaScript. -->
     <?!= HtmlService.createTemplateFromFile("sharedAppHeaderJs").evaluate().getContent() ?>
     <script>
       var checkboxes = [];
       var quickTask;
       var quickTaskProgress;
-      var snackbar;
       window.addEventListener("load", () => {
         document.querySelectorAll(".mdc-checkbox").forEach((el) => {
           const checkbox = mdc.checkbox.MDCCheckbox.attachTo(el);
@@ -430,26 +421,18 @@
                 quickTask.disabled = false;
                 quickTaskProgress.foundation.close();
                 if (!resp.ok) {
-                  snackbar.open();
-                  document.querySelector(
-                    ".mdc-snackbar__label"
-                  ).innerText = `Error "${resp.error}"`;
+                  openSnackbar(`Error "${resp.error}"`);
 
                   quickTask.foundation.activateFocus();
                 } else {
-                  snackbar.open();
-                  document.querySelector(".mdc-snackbar__label").innerText =
-                    "Successfully added task.";
+                  openSnackbar("Successfully added task.");
 
                   quickTask.root.parentElement.classList.remove("mdc-fab--extended");
                   quickTask.root.style.display = "none";
                 }
               })
               .withFailureHandler(() => {
-                snackbar.open();
-                document.querySelector(
-                  ".mdc-snackbar__label"
-                ).innerText = `Unknown error when attempting to add task.`;
+                openSnackbar(`Unknown error when attempting to add task.`);
                 quickTask.disabled = false;
                 quickTask.foundation.activateFocus();
                 quickTaskProgress.foundation.close();
@@ -463,8 +446,6 @@
         );
         quickTaskProgress.foundation.setDeterminate(false);
         quickTaskProgress.foundation.close();
-
-        snackbar = mdc.snackbar.MDCSnackbar.attachTo(document.querySelector(".mdc-snackbar"));
       });
 
       function handleMenuClick() {
@@ -482,20 +463,13 @@
             appHeaderProgress.foundation.close();
             if (!resp.ok) {
               element.checked = !element.checked;
-              snackbar.open();
-              document.querySelector(".mdc-snackbar__label").innerText = `Error "${resp.error}"`;
+              openSnackbar(`Error "${resp.error}"`);
             } else {
-              snackbar.open();
-              document.querySelector(
-                ".mdc-snackbar__label"
-              ).innerText = `Successfully updated complete state.`;
+              openSnackbar(`Successfully updated complete state.`);
             }
           })
           .withFailureHandler(() => {
-            snackbar.open();
-            document.querySelector(
-              ".mdc-snackbar__label"
-            ).innerText = `Unknown error when attempting to modify complete state.`;
+            openSnackbar(`Unknown error when attempting to modify complete state.`);
             element.disabled = false;
             element.checked = !element.checked;
             appHeaderProgress.foundation.close();
