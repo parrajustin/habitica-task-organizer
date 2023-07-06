@@ -283,6 +283,7 @@ function doGet(
     apiUser === null ||
     taskSortPrefix === null
   ) {
+    currentPath = "props";
     return PropertiesForm.GetHtmlPage(e).addMetaTag(
       "viewport",
       "width=device-width, initial-scale=1"
@@ -290,12 +291,34 @@ function doGet(
   }
 
   if (e.parameter["path"] === "addGroup") {
-    console.log("entering add group");
+    currentPath = "addGroup";
     return AddGroupHtml.GetHtmlPage(e).addMetaTag(
       "viewport",
       "width=device-width, initial-scale=1"
     );
   }
 
+  if (e.parameter["path"] === "tasks") {
+    currentPath = "tasks";
+    return TasksHtml.GetHtmlPage(e).addMetaTag("viewport", "width=device-width, initial-scale=1");
+  }
+
+  currentPath = "default";
   return TasksHtml.GetHtmlPage(e).addMetaTag("viewport", "width=device-width, initial-scale=1");
 }
+
+export namespace Home {
+  /**
+   * Gets the current router path.
+   * @returns path router options
+   */
+  export function GetPath(): Option<"props" | "addGroup" | "tasks" | "default"> {
+    if (currentPath === null) {
+      return Option.None;
+    }
+
+    return Option.Some(currentPath);
+  }
+}
+
+let currentPath: ("props" | "addGroup" | "tasks" | "default") | null = null;

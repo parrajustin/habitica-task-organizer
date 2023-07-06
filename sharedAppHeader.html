@@ -66,7 +66,7 @@
   <div class="mdc-drawer__content">
     <nav class="mdc-deprecated-list">
       <a
-        class="mdc-deprecated-list-item mdc-deprecated-list-item--activated"
+        class="mdc-deprecated-list-item <? if (SharedHtml.IsCurrentPath('default') || SharedHtml.IsCurrentPath('tasks')) { ?>mdc-deprecated-list-item--activated<? } ?>"
         href="<?= Utils.GetScriptUrl('') ?>"
         aria-current="page"
         tabindex="0"
@@ -75,17 +75,26 @@
         <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">home</i>
         <span class="mdc-deprecated-list-item__text">Tasks</span>
       </a>
-      <a class="mdc-deprecated-list-item" href="#">
+      <a
+        class="mdc-deprecated-list-item <? if (SharedHtml.IsCurrentPath('addGroup')) { ?>mdc-deprecated-list-item--activated<? } ?>"
+        href="<?= Utils.GetScriptUrl('?path=addGroup') ?>"
+      >
         <span class="mdc-deprecated-list-item__ripple"></span>
         <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">edit</i>
         <span class="mdc-deprecated-list-item__text">Add Group</span>
       </a>
-      <a class="mdc-deprecated-list-item" href="#">
+      <a
+        class="mdc-deprecated-list-item <? if (SharedHtml.IsCurrentPath('addItem')) { ?>mdc-deprecated-list-item--activated<? } ?>"
+        href="#"
+      >
         <span class="mdc-deprecated-list-item__ripple"></span>
         <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">edit</i>
         <span class="mdc-deprecated-list-item__text">Add Item</span>
       </a>
-      <a class="mdc-deprecated-list-item" href="<?= Utils.GetScriptUrl('?path=props') ?>">
+      <a
+        class="mdc-deprecated-list-item <? if (SharedHtml.IsCurrentPath('props')) { ?>mdc-deprecated-list-item--activated<? } ?>"
+        href="<?= Utils.GetScriptUrl('?path=props') ?>"
+      >
         <span class="mdc-deprecated-list-item__ripple"></span>
         <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true">settings</i>
         <span class="mdc-deprecated-list-item__text">Settings</span>
