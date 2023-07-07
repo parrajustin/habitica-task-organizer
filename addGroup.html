@@ -20,20 +20,9 @@
 <html>
   <head>
     <base target="_top" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"
-    />
-    <!-- Required Material Web JavaScript library -->
-    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <?!= HtmlService.createTemplateFromFile("sharedHeaderIncludes").evaluate().getContent() ?>
 
     <style>
-      * {
-        font-size: large;
-      }
-
       .editor-card__primary {
         padding: 1rem;
       }
@@ -57,137 +46,142 @@
     </style>
   </head>
   <body>
-    <div class="mdc-layout-grid">
-      <div class="mdc-layout-grid__inner">
-        <div class="mdc-layout-grid__cell--span-2-desktop"></div>
-        <div
-          class="mdc-layout-grid__cell--span-8-desktop mdc-layout-grid__cell--span-8-tablet mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--align-middle"
-        >
-          <div class="mdc-card">
-            <div class="mdc-card__primary-action" tabindex="0">
-              <div
-                class="mdc-card__media mdc-card__media--16-9 demo-card__media"
-                style="
-                  background-image: url('https://images.blush.design/516dbfee93b4fd4a4c5a2601950a6452?w=920&auto=compress&cs=srgb');
-                "
-              ></div>
-              <div class="editor-card__primary">
-                <h2 class="editor-card__title mdc-typography mdc-typography--headline6">
-                  Group
-                  <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
-                  Creation
-                  <? } else { ?>
-                  Editor
-                  <? } ?>
-                </h2>
-                <h3 class="editor-card__subtitle mdc-typography mdc-typography--subtitle2">
-                  Select options below to
-                  <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
-                  create a new group.
-                  <? } else { ?>
-                  modify an existing group.
-                  <? } ?>
-                </h3>
-              </div>
-              <div class="editor-card__secondary mdc-typography mdc-typography--body2">
-                <form onsubmit="handleFormSubmit(this)" name="group">
-                  <!-- Id of selected group -->
-                  <? if (AddGroupHtml.HasSelectedGroup()) { ?>
-                  <input
-                    id="selectedGroup"
-                    type="text"
-                    name="selectedGroup"
-                    style="display: none"
-                    value="<?= AddGroupHtml.GetSelectedGroupId() ?>"
-                  />
-                  <? } ?>
-                  <div class="mdc-layout-grid">
-                    <div class="mdc-layout-grid__inner">
-                      <div class="mdc-layout-grid__cell--span-12">
-                        <!-- Render textfield component -->
-                        <label class="mdc-text-field mdc-text-field--filled set-width-100">
-                          <span class="mdc-text-field__ripple"></span>
-                          <span class="mdc-floating-label" id="my-label">Group Text</span>
-                          <!-- prettier-ignore -->
-                          <input
+    <!-- Include the top app bar and drawer content -->
+    <?!= HtmlService.createTemplateFromFile("sharedAppHeader").evaluate().getContent() ?>
+
+    <!-- Main html content -->
+    <main class="mdc-top-app-bar--fixed-adjust">
+      <div class="mdc-layout-grid">
+        <div class="mdc-layout-grid__inner">
+          <div class="mdc-layout-grid__cell--span-2-desktop"></div>
+          <div
+            class="mdc-layout-grid__cell--span-8-desktop mdc-layout-grid__cell--span-8-tablet mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--align-middle"
+          >
+            <div class="mdc-card">
+              <div class="mdc-card__primary-action" tabindex="0">
+                <div
+                  class="mdc-card__media mdc-card__media--16-9 demo-card__media"
+                  style="
+                    background-image: url('https://images.blush.design/516dbfee93b4fd4a4c5a2601950a6452?w=920&auto=compress&cs=srgb');
+                  "
+                ></div>
+                <div class="editor-card__primary">
+                  <h2 class="editor-card__title mdc-typography mdc-typography--headline6">
+                    Group
+                    <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
+                    Creation
+                    <? } else { ?>
+                    Editor
+                    <? } ?>
+                  </h2>
+                  <h3 class="editor-card__subtitle mdc-typography mdc-typography--subtitle2">
+                    Select options below to
+                    <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
+                    create a new group.
+                    <? } else { ?>
+                    modify an existing group.
+                    <? } ?>
+                  </h3>
+                </div>
+                <div class="editor-card__secondary mdc-typography mdc-typography--body2">
+                  <form onsubmit="handleFormSubmit(this)" name="group">
+                    <!-- Id of selected group -->
+                    <? if (AddGroupHtml.HasSelectedGroup()) { ?>
+                    <input
+                      id="selectedGroup"
+                      type="text"
+                      name="selectedGroup"
+                      style="display: none"
+                      value="<?= AddGroupHtml.GetSelectedGroupId() ?>"
+                    />
+                    <? } ?>
+                    <div class="mdc-layout-grid">
+                      <div class="mdc-layout-grid__inner">
+                        <div class="mdc-layout-grid__cell--span-12">
+                          <!-- Render textfield component -->
+                          <label class="mdc-text-field mdc-text-field--filled set-width-100">
+                            <span class="mdc-text-field__ripple"></span>
+                            <span class="mdc-floating-label" id="my-label">Group Text</span>
+                            <!-- prettier-ignore -->
+                            <input
                             type="text"
                             class="mdc-text-field__input"
                             aria-labelledby="my-label"
                             name="text"
                             <? if (AddGroupHtml.HasSelectedGroup()) { ?>
-                          value="<?= AddGroupHtml.GetSelectedGroupText() ?>"
-                          <? } ?>
-                          />
-                          <span class="mdc-line-ripple"></span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div class="mdc-layout-grid__inner">
-                      <div class="mdc-layout-grid__cell--span-12">
-                        <div class="spacer"></div>
-                      </div>
-                    </div>
-
-                    <div class="mdc-layout-grid__inner">
-                      <div class="mdc-layout-grid__cell--span-12">
-                        <!-- parent group input -->
-                        <input
-                          id="parentGroup"
-                          type="text"
-                          name="parent"
-                          style="display: none"
-                          value="<?= AddGroupHtml.GetSelectedParentId() ?>"
-                        />
-                        <div class="mdc-select mdc-select--filled set-width-100">
-                          <div
-                            class="mdc-select__anchor"
-                            role="button"
-                            aria-haspopup="listbox"
-                            aria-expanded="false"
-                            aria-labelledby="demo-label demo-selected-text"
-                          >
-                            <span class="mdc-select__ripple"></span>
-                            <span id="demo-label" class="mdc-floating-label">Parent Group</span>
-                            <span class="mdc-select__selected-text-container">
-                              <span
-                                id="demo-selected-text"
-                                class="mdc-select__selected-text"
-                              ></span>
-                            </span>
-                            <span class="mdc-select__dropdown-icon">
-                              <svg
-                                class="mdc-select__dropdown-icon-graphic"
-                                viewBox="7 10 10 5"
-                                focusable="false"
-                              >
-                                <polygon
-                                  class="mdc-select__dropdown-icon-inactive"
-                                  stroke="none"
-                                  fill-rule="evenodd"
-                                  points="7 10 12 15 17 10"
-                                ></polygon>
-                                <polygon
-                                  class="mdc-select__dropdown-icon-active"
-                                  stroke="none"
-                                  fill-rule="evenodd"
-                                  points="7 15 12 10 17 15"
-                                ></polygon>
-                              </svg>
-                            </span>
+                            value="<?= AddGroupHtml.GetSelectedGroupText() ?>"
+                            <? } ?>
+                            />
                             <span class="mdc-line-ripple"></span>
-                          </div>
+                          </label>
+                        </div>
+                      </div>
 
-                          <div
-                            class="mdc-select__menu mdc-menu mdc-menu-surface mdc-menu-surface--fullwidth"
-                          >
-                            <ul
-                              class="mdc-deprecated-list"
-                              role="listbox"
-                              aria-label="Food picker listbox"
+                      <div class="mdc-layout-grid__inner">
+                        <div class="mdc-layout-grid__cell--span-12">
+                          <div class="spacer"></div>
+                        </div>
+                      </div>
+
+                      <div class="mdc-layout-grid__inner">
+                        <div class="mdc-layout-grid__cell--span-12">
+                          <!-- parent group input -->
+                          <input
+                            id="parentGroup"
+                            type="text"
+                            name="parent"
+                            style="display: none"
+                            value="<?= AddGroupHtml.GetSelectedParentId() ?>"
+                          />
+                          <div class="mdc-select mdc-select--filled set-width-100">
+                            <div
+                              class="mdc-select__anchor"
+                              role="button"
+                              aria-haspopup="listbox"
+                              aria-expanded="false"
+                              aria-labelledby="demo-label demo-selected-text"
                             >
-                              <!-- prettier-ignore -->
-                              <li
+                              <span class="mdc-select__ripple"></span>
+                              <span id="demo-label" class="mdc-floating-label">Parent Group</span>
+                              <span class="mdc-select__selected-text-container">
+                                <span
+                                  id="demo-selected-text"
+                                  class="mdc-select__selected-text"
+                                ></span>
+                              </span>
+                              <span class="mdc-select__dropdown-icon">
+                                <svg
+                                  class="mdc-select__dropdown-icon-graphic"
+                                  viewBox="7 10 10 5"
+                                  focusable="false"
+                                >
+                                  <polygon
+                                    class="mdc-select__dropdown-icon-inactive"
+                                    stroke="none"
+                                    fill-rule="evenodd"
+                                    points="7 10 12 15 17 10"
+                                  ></polygon>
+                                  <polygon
+                                    class="mdc-select__dropdown-icon-active"
+                                    stroke="none"
+                                    fill-rule="evenodd"
+                                    points="7 15 12 10 17 15"
+                                  ></polygon>
+                                </svg>
+                              </span>
+                              <span class="mdc-line-ripple"></span>
+                            </div>
+
+                            <div
+                              class="mdc-select__menu mdc-menu mdc-menu-surface mdc-menu-surface--fullwidth"
+                            >
+                              <ul
+                                class="mdc-deprecated-list"
+                                role="listbox"
+                                aria-label="Food picker listbox"
+                              >
+                                <!-- prettier-ignore -->
+                                <li
                                 class="mdc-deprecated-list-item mdc-deprecated-list-item--selected"
                                 aria-selected="<?= AddGroupHtml.GetSelectedDefaultParentValue()?>"
                                 data-value=""
@@ -195,212 +189,184 @@
                               >
                                 <span class="mdc-deprecated-list-item__ripple"></span>
                               </li>
-                              <!-- prettier-ignore -->
-                              <? for (let i = 0; i < groupNodes.length; i++) { ?>
-                              <li
-                                class="mdc-deprecated-list-item"
-                                aria-selected="<?= AddGroupHtml.IsNodeSelectedParentString(groupNodes[i]) ?>"
-                                data-value="<?= AddGroupHtml.GetNodeId(groupNodes[i]) ?>"
-                                role="option"
-                              >
-                                <span class="mdc-deprecated-list-item__ripple"></span>
-                                <span class="mdc-deprecated-list-item__text">
-                                  <?= AddGroupHtml.GetNodeText(groupNodes[i]) ?>
-                                </span>
-                              </li>
-                              <? } ?>
-                            </ul>
+                                <!-- prettier-ignore -->
+                                <? for (let i = 0; i < groupNodes.length; i++) { ?>
+                                <li
+                                  class="mdc-deprecated-list-item"
+                                  aria-selected="<?= AddGroupHtml.IsNodeSelectedParentString(groupNodes[i]) ?>"
+                                  data-value="<?= AddGroupHtml.GetNodeId(groupNodes[i]) ?>"
+                                  role="option"
+                                >
+                                  <span class="mdc-deprecated-list-item__ripple"></span>
+                                  <span class="mdc-deprecated-list-item__text">
+                                    <?= AddGroupHtml.GetNodeText(groupNodes[i]) ?>
+                                  </span>
+                                </li>
+                                <? } ?>
+                              </ul>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div class="mdc-layout-grid__inner">
-                      <div class="mdc-layout-grid__cell--span-12">
-                        <div class="spacer"></div>
+                      <div class="mdc-layout-grid__inner">
+                        <div class="mdc-layout-grid__cell--span-12">
+                          <div class="spacer"></div>
+                        </div>
                       </div>
-                    </div>
 
-                    <div class="mdc-layout-grid__inner">
-                      <div class="mdc-layout-grid__cell--span-12">
-                        <p class="mdc-typography--body1">Setting child selection:</p>
-                        <span class="mdc-typography--caption"
-                          >Will overwrite the task's parent if it has one.</span
-                        >
-                        <span class="mdc-typography--caption"
-                          >Rows above the separator are groups and below indvidual items.</span
-                        >
-                        <ul
-                          class="mdc-deprecated-list"
-                          role="group"
-                          aria-label="List with checkbox items"
-                          id="children"
-                        >
-                          <!-- prettier-ignore -->
-                          <? for (let i = 0; i < groupNodes.length; i++) { ?>
-                          <li
-                            class="mdc-deprecated-list-item"
-                            role="checkbox"
-                            aria-checked="<?= AddGroupHtml.IsSelectedTheNodeParentGroupString(groupNodes[i]) ?>"
+                      <div class="mdc-layout-grid__inner">
+                        <div class="mdc-layout-grid__cell--span-12">
+                          <p class="mdc-typography--body1">Setting child selection:</p>
+                          <span class="mdc-typography--caption"
+                            >Will overwrite the task's parent if it has one.</span
                           >
-                            <span class="mdc-deprecated-list-item__ripple"></span>
-                            <span class="mdc-deprecated-list-item__graphic">
-                              <div class="mdc-checkbox">
-                                <!-- prettier-ignore -->
-                                <input
+                          <span class="mdc-typography--caption"
+                            >Rows above the separator are groups and below indvidual items.</span
+                          >
+                          <ul
+                            class="mdc-deprecated-list"
+                            role="group"
+                            aria-label="List with checkbox items"
+                            id="children"
+                          >
+                            <!-- prettier-ignore -->
+                            <? for (let i = 0; i < groupNodes.length; i++) { ?>
+                            <li
+                              class="mdc-deprecated-list-item"
+                              role="checkbox"
+                              aria-checked="<?= AddGroupHtml.IsSelectedTheNodeParentGroupString(groupNodes[i]) ?>"
+                            >
+                              <span class="mdc-deprecated-list-item__ripple"></span>
+                              <span class="mdc-deprecated-list-item__graphic">
+                                <div class="mdc-checkbox">
+                                  <!-- prettier-ignore -->
+                                  <input
                                   type="checkbox"
                                   class="mdc-checkbox__native-control"
                                   id="demo-list-checkbox-item-1"
                                   name="<?= AddGroupHtml.GetNodeId(groupNodes[i]) ?>"
                                   <? if (AddGroupHtml.IsSelectedTheNodeParentGroup(groupNodes[i])) { ?>
-                                checked
-                                <? } ?>
-                                />
-                                <div class="mdc-checkbox__background">
-                                  <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                    <path
-                                      class="mdc-checkbox__checkmark-path"
-                                      fill="none"
-                                      d="M1.73,12.91 8.1,19.28 22.79,4.59"
-                                    />
-                                  </svg>
-                                  <div class="mdc-checkbox__mixedmark"></div>
+                                  checked
+                                  <? } ?>
+                                  />
+                                  <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                      <path
+                                        class="mdc-checkbox__checkmark-path"
+                                        fill="none"
+                                        d="M1.73,12.91 8.1,19.28 22.79,4.59"
+                                      />
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                  </div>
                                 </div>
-                              </div>
-                            </span>
-                            <div class="wrapper">
-                              <label
-                                class="mdc-deprecated-list-item__text"
-                                for="demo-list-checkbox-item-1"
-                                ><?= AddGroupHtml.GetNodeText(groupNodes[i]) ?></label
-                              >
-                              <? var parent = AddGroupHtml.GetParentNode(groupNodes[i]);
+                              </span>
+                              <div class="wrapper">
+                                <label
+                                  class="mdc-deprecated-list-item__text"
+                                  for="demo-list-checkbox-item-1"
+                                  ><?= AddGroupHtml.GetNodeText(groupNodes[i]) ?></label
+                                >
+                                <? var parent = AddGroupHtml.GetParentNode(groupNodes[i]);
                                if (AddGroupHtml.IsValidNode(parent)) { ?>
-                              <label
-                                class="mdc-deprecated-list-item__text"
-                                for="demo-list-checkbox-item-1"
-                                >Parent:
-                                <?= AddGroupHtml.GetParentNodeText(parent) ?></label
-                              >
-                              <? } ?>
-                            </div>
-                          </li>
-                          <? } ?>
+                                <label
+                                  class="mdc-deprecated-list-item__text"
+                                  for="demo-list-checkbox-item-1"
+                                  >Parent:
+                                  <?= AddGroupHtml.GetParentNodeText(parent) ?></label
+                                >
+                                <? } ?>
+                              </div>
+                            </li>
+                            <? } ?>
 
-                          <!-- prettier-ignore -->
-                          <li role="separator" class="mdc-deprecated-list-divider"></li>
+                            <!-- prettier-ignore -->
+                            <li role="separator" class="mdc-deprecated-list-divider"></li>
 
-                          <!-- prettier-ignore -->
-                          <? const taskNodes = AddGroupHtml.GetItemNodes();
+                            <!-- prettier-ignore -->
+                            <? const taskNodes = AddGroupHtml.GetItemNodes();
                          for (let i = 0; i < taskNodes.length; i++) { ?>
-                          <li
-                            class="mdc-deprecated-list-item"
-                            role="checkbox"
-                            aria-checked="<?= AddGroupHtml.IsSelectedTheNodeParentGroupString(taskNodes[i]) ?>"
-                          >
-                            <span class="mdc-deprecated-list-item__ripple"></span>
-                            <span class="mdc-deprecated-list-item__graphic">
-                              <div class="mdc-checkbox">
-                                <!-- prettier-ignore -->
-                                <input
+                            <li
+                              class="mdc-deprecated-list-item"
+                              role="checkbox"
+                              aria-checked="<?= AddGroupHtml.IsSelectedTheNodeParentGroupString(taskNodes[i]) ?>"
+                            >
+                              <span class="mdc-deprecated-list-item__ripple"></span>
+                              <span class="mdc-deprecated-list-item__graphic">
+                                <div class="mdc-checkbox">
+                                  <!-- prettier-ignore -->
+                                  <input
                                   type="checkbox"
                                   class="mdc-checkbox__native-control"
                                   id="demo-list-checkbox-item-1"
                                   name="<?= AddGroupHtml.GetNodeId(taskNodes[i]) ?>"
                                   <? if (AddGroupHtml.IsSelectedTheNodeParentGroup(taskNodes[i])) { ?>
-                                checked
-                                <? } ?>
-                                />
-                                <div class="mdc-checkbox__background">
-                                  <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                    <path
-                                      class="mdc-checkbox__checkmark-path"
-                                      fill="none"
-                                      d="M1.73,12.91 8.1,19.28 22.79,4.59"
-                                    />
-                                  </svg>
-                                  <div class="mdc-checkbox__mixedmark"></div>
+                                  checked
+                                  <? } ?>
+                                  />
+                                  <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                      <path
+                                        class="mdc-checkbox__checkmark-path"
+                                        fill="none"
+                                        d="M1.73,12.91 8.1,19.28 22.79,4.59"
+                                      />
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                  </div>
                                 </div>
-                              </div>
-                            </span>
-                            <div class="wrapper">
-                              <label
-                                class="mdc-deprecated-list-item__text"
-                                for="demo-list-checkbox-item-1"
-                                ><?= AddGroupHtml.GetNodeText(taskNodes[i]) ?></label
-                              >
-                              <? var parent = AddGroupHtml.GetParentNode(taskNodes[i]);
+                              </span>
+                              <div class="wrapper">
+                                <label
+                                  class="mdc-deprecated-list-item__text"
+                                  for="demo-list-checkbox-item-1"
+                                  ><?= AddGroupHtml.GetNodeText(taskNodes[i]) ?></label
+                                >
+                                <? var parent = AddGroupHtml.GetParentNode(taskNodes[i]);
                                if (AddGroupHtml.IsValidNode(parent)) { ?>
-                              <label
-                                class="mdc-deprecated-list-item__text"
-                                for="demo-list-checkbox-item-1"
-                                >Parent:
-                                <?= AddGroupHtml.GetParentNodeText(parent) ?></label
-                              >
-                              <? } ?>
-                            </div>
-                          </li>
-                          <? } ?>
-                        </ul>
+                                <label
+                                  class="mdc-deprecated-list-item__text"
+                                  for="demo-list-checkbox-item-1"
+                                  >Parent:
+                                  <?= AddGroupHtml.GetParentNodeText(parent) ?></label
+                                >
+                                <? } ?>
+                              </div>
+                            </li>
+                            <? } ?>
+                          </ul>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </form>
+                  </form>
+                </div>
               </div>
-            </div>
-            <div class="mdc-card__actions">
-              <div class="mdc-layout-grid set-width-100">
-                <div class="mdc-layout-grid__inner">
-                  <div class="mdc-layout-grid__cell--span-12">
-                    <button
-                      class="mdc-button mdc-card__action mdc-card__action--button"
-                      id="createBtn"
-                    >
-                      <div class="mdc-button__ripple"></div>
-                      <span class="mdc-button__label" onclick="handleCreateClick()">
-                        <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
-                        Create
-                        <? } else { ?>
-                        Update
-                        <? } ?></span
-                      >
-                    </button>
-                    <button class="mdc-button mdc-card__action mdc-card__action--button">
-                      <div class="mdc-button__ripple"></div>
-                      <span class="mdc-button__label" onclick="navigateHome()">Exit</span>
-                    </button>
-                  </div>
-                </div>
-                <div class="mdc-layout-grid__inner">
-                  <div class="mdc-layout-grid__cell--span-12">
-                    <div
-                      role="progressbar"
-                      class="mdc-linear-progress"
-                      aria-label="progress bar"
-                      aria-valuemin="0"
-                      aria-valuemax="1"
-                      aria-valuenow="0"
-                    >
-                      <div class="mdc-linear-progress__buffer">
-                        <div class="mdc-linear-progress__buffer-bar"></div>
-                        <div class="mdc-linear-progress__buffer-dots"></div>
-                      </div>
-                      <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
-                        <span class="mdc-linear-progress__bar-inner"></span>
-                      </div>
-                      <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
-                        <span class="mdc-linear-progress__bar-inner"></span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div class="mdc-card__actions">
+                <button
+                  class="mdc-button mdc-card__action mdc-card__action--button mdc-button--raised"
+                  id="createBtn"
+                >
+                  <div class="mdc-button__ripple"></div>
+                  <span class="mdc-button__label" onclick="handleCreateClick()">
+                    <? if (!AddGroupHtml.HasSelectedGroup()) { ?>
+                    Create
+                    <? } else { ?>
+                    Update
+                    <? } ?></span
+                  >
+                </button>
+                <button class="mdc-button mdc-card__action mdc-card__action--button">
+                  <div class="mdc-button__ripple"></div>
+                  <span class="mdc-button__label" onclick="navigateHome()">Return Home</span>
+                </button>
               </div>
             </div>
           </div>
+          <div class="mdc-layout-grid__cell--span-2-desktop"></div>
         </div>
-        <div class="mdc-layout-grid__cell--span-2-desktop"></div>
       </div>
-    </div>
+    </main>
 
     <aside class="mdc-snackbar successSnackbar">
       <div class="mdc-snackbar__surface" role="status" aria-relevant="additions">
@@ -429,13 +395,14 @@
         </div>
       </div>
     </aside>
-    <!-- Store data passed to template here, so it is available to the
-   imported JavaScript. -->
+
+    <!-- Store data passed to template here, so it is available to the imported JavaScript. -->
+    <?!= HtmlService.createTemplateFromFile("sharedAppHeaderJs").evaluate().getContent() ?>
+    <!-- Store data passed to template here, so it is available to the imported JavaScript. -->
     <script>
       var ripples;
       var mdcList;
       var select;
-      var linearProgress;
       var successSnackbar;
       var failedSnackbar;
       // Prevent forms from submitting.
@@ -470,12 +437,6 @@
           ripples.push(mdc.ripple.MDCRipple.attachTo(listItemEl));
         });
 
-        linearProgress = mdc.linearProgress.MDCLinearProgress.attachTo(
-          document.querySelector(".mdc-linear-progress")
-        );
-        linearProgress.foundation.setDeterminate(false);
-        linearProgress.foundation.close();
-
         successSnackbar = mdc.snackbar.MDCSnackbar.attachTo(
           document.querySelector(".successSnackbar")
         );
@@ -495,14 +456,14 @@
         }
 
         document.querySelector("#createBtn").disabled = false;
-        linearProgress.foundation.close();
+        closeProgress();
       }
       function processFailure() {
         document.querySelector("#createBtn").disabled = false;
         const content = document.querySelector("#snackbarContent");
         content.innerHTML = `Failed for unknown reason`;
         failedSnackbar.open();
-        linearProgress.foundation.close();
+        closeProgress();
       }
       function handleCreateClick() {
         document.group.requestSubmit();
@@ -511,13 +472,14 @@
       /* Handle the form submit but sending request to app script backend. */
       function handleFormSubmit(formObject) {
         document.querySelector("#createBtn").disabled = true;
-        linearProgress.foundation.open();
+        openProgress();
         google.script.run
           .withSuccessHandler(processSuccess)
           .withFailureHandler(processFailure)
           .ProcesGroupForm(formObject);
       }
       function navigateHome() {
+        openProgress();
         window.top.location.href = "<?= Utils.GetScriptUrl('') ?>";
       }
     </script>

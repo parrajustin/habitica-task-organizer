@@ -226,6 +226,7 @@
         google.script.run.withSuccessHandler(processSuccess).ProcessPropertiesForm(formObject);
       }
       function navigateHome() {
+        openProgress();
         window.top.location.href = "<?= Utils.GetScriptUrl('') ?>";
       }
     </script>

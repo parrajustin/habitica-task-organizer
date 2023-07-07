@@ -484,7 +484,7 @@
         });
       }
       function handleEditClick(isGroup, id, element) {
-        appHeaderProgress.open();
+        openProgress();
         element.disabled = true;
         if (isGroup === "true") {
           const baseUrl = "<?= Utils.GetScriptUrl('?path=addGroup') ?>";
