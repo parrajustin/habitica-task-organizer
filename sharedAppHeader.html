@@ -1,9 +1,13 @@
 <header class="mdc-top-app-bar mdc-top-app-bar--fixed">
   <div class="mdc-top-app-bar__row">
     <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+      <!-- prettier-ignore -->
       <button
         class="material-icons mdc-top-app-bar__navigation-icon mdc-icon-button"
         onclick="handleHeaderMenuClick()"
+        <? if (!Utils.HasValidProperties()) { ?>
+        disabled
+        <? } ?>
       >
         menu
       </button>
@@ -11,10 +15,14 @@
     </section>
     <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
       <div class="mdc-menu-surface--anchor">
+        <!-- prettier-ignore -->
         <button
           class="material-icons mdc-top-app-bar__action-item mdc-icon-button"
           aria-label="Add task/group"
           onclick="handleHeaderAddBtnClick()"
+          <? if (!Utils.HasValidProperties()) { ?>
+          disabled
+          <? } ?>
         >
           add
         </button>

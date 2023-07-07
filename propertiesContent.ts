@@ -26,15 +26,6 @@ export namespace PropertiesForm {
     return userProperties.getProperty("API_USER");
   }
 
-  export function HasValidProperties(): boolean {
-    const userProperties = PropertiesService.getUserProperties();
-    const apiKey = userProperties.getProperty("API_KEY");
-    const apiUser = userProperties.getProperty("API_USER");
-    const taskSortPrefix = userProperties.getProperty("TASK_SORT_PREFIX");
-
-    return apiKey !== null && apiUser !== null && taskSortPrefix !== null;
-  }
-
   /**
    * Gets the HTML page.
    * @param e

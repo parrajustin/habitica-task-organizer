@@ -59,7 +59,7 @@
                   </h2>
                   <h3 class="editor-card__subtitle mdc-typography mdc-typography--subtitle2">
                     Use options below to set your settings.
-                    <? if (!PropertiesForm.HasValidProperties()) { ?>
+                    <? if (!Utils.HasValidProperties()) { ?>
                     Required to set "Prefix, API KEY, and API USER" on first usage.
                     <? } ?>
                   </h3>
@@ -147,12 +147,18 @@
                   onclick="navigateHome()"
                   type="button"
                   id="returnBtn"
-                  <? if (!PropertiesForm.HasValidProperties()) { ?>
+                  <? if (!Utils.HasValidProperties()) { ?>
                     disabled
                   <? } ?>
                 >
                   <div class="mdc-button__ripple"></div>
-                  <span class="mdc-button__label">Return to tasks</span>
+                  <span class="mdc-button__label">
+                    <? if (!Utils.HasValidProperties()) { ?>
+                      Go to home page
+                    <? } else { ?>
+                      Return to tasks
+                    <? } ?>
+                  </span>
                 </button>
                 </div>
               </div>
