@@ -489,6 +489,9 @@
         if (isGroup === "true") {
           const baseUrl = "<?= Utils.GetScriptUrl('?path=addGroup') ?>";
           window.top.location.href = `${baseUrl}&selectedGroup=${id}`;
+        } else {
+          const baseUrl = "<?= Utils.GetScriptUrl('?path=addItem') ?>";
+          window.top.location.href = `${baseUrl}&selectedItem=${id}`;
         }
       }
     </script>

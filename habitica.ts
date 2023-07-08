@@ -1,7 +1,7 @@
 import { Guards } from "./assert";
 import { Combine } from "./combine";
 import { LZString } from "./lz-string";
-import { Option } from "./option";
+import { Option, Some } from "./option";
 import { Ok, Result } from "./result";
 import { ShortUniqueId } from "./short-unique-id";
 import { Utils } from "./utils";
@@ -306,7 +306,7 @@ export namespace Habitica {
             this.updateGroupNodeConnections(node);
             break;
           case "ITEM":
-            this.updateItemNode(node);
+            this.updateItemNodeConnections(node);
             break;
         }
       }
@@ -464,6 +464,19 @@ export namespace Habitica {
     }
 
     /**
+     * Finds an item node based on a raw string.
+     * @param rawId the raw id of the node
+     * @returns the found item node
+     */
+    public findItemNodeFromRaw(rawId: string): Option<ItemTaskNode> {
+      const node = this.findNode(rawId);
+      if (node.some && node.safeUnwrap().type === "ITEM") {
+        return Option.Some(node.safeUnwrap() as ItemTaskNode);
+      }
+      return Option.None;
+    }
+
+    /**
      * Finds a group node based on a raw string.
      * @param rawId the raw id of the node
      * @returns the found group node
@@ -483,6 +496,15 @@ export namespace Habitica {
      */
     public findGroupNode(key: TaskGroupKey): Option<GroupTaskNode> {
       return this.findGroupNodeFromRaw(key.data);
+    }
+
+    /**
+     * Finds an item node.
+     * @param key the item task key
+     * @returns the found item task node if any
+     */
+    public findItemNode(key: TaskItemKey): Option<ItemTaskNode> {
+      return this.findItemNodeFromRaw(key.data);
     }
 
     /**
@@ -544,6 +566,111 @@ export namespace Habitica {
     }
 
     /**
+     * Updates an item node.
+     * @param id the item ID for the node to udpate
+     * @param text the item text
+     * @param parentId the item new ID if any
+     * @param depIds the set of IDs for task dependencies
+     * @returns result of operation
+     */
+    public updateItemNode(
+      id: string,
+      text: string,
+      parentId: Option<string>,
+      depIds: string[]
+    ): Result<
+      Habitica.ItemTaskNode,
+      | "Couldn't find dep node"
+      | "Couldn't find parent"
+      | "Couldn't find node"
+      | "Can't have self as dependency"
+      | "Has dependency cyclical loop"
+      | "No change"
+    > {
+      const itemToUpdate = this.findItemNodeFromRaw(id);
+      if (itemToUpdate.none) {
+        return Result.Err("Couldn't find node");
+      }
+
+      if (depIds.findIndex((i) => i === id) !== -1) {
+        return Result.Err("Can't have self as dependency");
+      }
+      Guards.assert<Ok<ItemTaskNode>>(itemToUpdate);
+      const item = itemToUpdate.safeUnwrap();
+      let hasAnyChange = false;
+
+      // Check if there is any change in the item text.
+      if (item.data.text !== text) {
+        hasAnyChange = true;
+        this.addModified(item, `Changed desc "${item.data.text}" => "${text}".`);
+        item.data.text = text;
+      }
+
+      // Check if there is any change in the parent group.
+      const parent = parentId.some ? this.findGroupNodeFromRaw(parentId.safeUnwrap()) : Option.None;
+      if (parent.some && parent.none) {
+        return Result.Err("Couldn't find parent");
+      }
+      const doesNotHaveParent = item.data.group === undefined;
+      const currentParentDoesNotMatch =
+        parent.some &&
+        item.data.group !== undefined &&
+        parent.safeUnwrap().id.data != item.data.group.data;
+      const removedParent = parent.none && item.data.group !== undefined;
+      if ((parent.some && (doesNotHaveParent || currentParentDoesNotMatch)) || removedParent) {
+        hasAnyChange = true;
+        this.addModified(
+          item,
+          `Changed parent "${item.data.group?.data}" => "${
+            parent.some ? parent.safeUnwrap().data.id : "undefined"
+          }".`
+        );
+        item.data.group = parent.some ? parent.safeUnwrap().data.id : undefined;
+        item.prev = parent.some ? parent.safeUnwrap() : undefined;
+      }
+
+      // Get all nodes that currently have this group.
+      const fetchedDeps = depIds.map((i) => this.findItemNodeFromRaw(i));
+      const validatedDeps = (fetchedDeps.filter((o) => o.some) as Some<ItemTaskNode>[]).map((o) =>
+        o.safeUnwrap()
+      );
+      if (fetchedDeps.length !== validatedDeps.length) {
+        return Result.Err("Couldn't find dep node");
+      }
+      const currentDepIds: Record<string, true> = {};
+      validatedDeps.forEach((v) => {
+        currentDepIds[v.id.data] = true;
+      });
+
+      // Find all current item dependencies that aren't in the `validatedDeps`.
+      const depsToRemove =
+        item.data.dependencies !== undefined
+          ? item.data.dependencies.filter((d) => currentDepIds[d.data] === undefined)
+          : [];
+      // Get ids of nodes to add this group as it's parent.
+      const originalDeps = item.data.dependencies ? item.data.dependencies.length : 0;
+      const numOfNewDeps = Math.abs(validatedDeps.length - (originalDeps - depsToRemove.length));
+
+      if (depsToRemove.length > 0 || numOfNewDeps > 0) {
+        item.data.dependencies = validatedDeps.map((n) => n.data.id);
+        this.addModified(
+          item,
+          `Dependency change (removed: ${depsToRemove.length}, added: ${numOfNewDeps})`
+        );
+      }
+
+      if (this.itemHasLoop(item)) {
+        return Result.Err("Has dependency cyclical loop");
+      }
+
+      if (hasAnyChange) {
+        return Result.Ok(item);
+      }
+
+      return Result.Err("No change");
+    }
+
+    /**
      * Updates a given group node with the information, Result is ok if there was a change.
      * @param id id of group node to update
      * @param text text to set for group node
@@ -558,7 +685,11 @@ export namespace Habitica {
       childIds: string[]
     ): Result<
       null,
-      "Couldn't find node" | "no change" | "Can't have self as child" | "Has cyclical loop"
+      | "Couldn't find parent"
+      | "Couldn't find node"
+      | "no change"
+      | "Can't have self as child"
+      | "Has cyclical loop"
     > {
       const groupToUpdate = this.findGroupNodeFromRaw(id);
       if (groupToUpdate.none) {
@@ -582,6 +713,10 @@ export namespace Habitica {
 
       // Check if there is any change in the parent group.
       const parent = parentId.some ? this.findGroupNodeFromRaw(parentId.safeUnwrap()) : Option.None;
+      if (parent.some && parent.none) {
+        return Result.Err("Couldn't find parent");
+      }
+
       const doesNotHaveParent = group.prev === undefined;
       const currentParentDoesNotMatch =
         parent.some &&
@@ -667,6 +802,70 @@ export namespace Habitica {
       }
 
       return Result.Err("no change");
+    }
+
+    /**
+     * Attempts to create a new item node.
+     * @param text the new item node text
+     * @param parent the new item node parent
+     * @param deps the new item task dependencies.
+     * @returns result of the operation
+     */
+    public createNewItemNode(
+      text: string,
+      parent: Option<string>,
+      deps: string[]
+    ): Result<
+      ItemTaskNode,
+      "Item node has dependency loop" | "Failed to find dependency" | "Parent node doesn't exist"
+    > {
+      // Wrap the id as a item key.
+      const id = this.WrapItemNodeId(this.uid.stamp(15));
+      // Get the parent node if one is defined, if it is not found set to none.
+      const parentNode: Option<GroupTaskNode> = parent.some
+        ? this.findGroupNodeFromRaw(parent.safeUnwrap())
+        : Option.None;
+      if (parent.some && parentNode.none) {
+        return Result.Err("Parent node doesn't exist");
+      }
+
+      const itemNode: ItemTaskNode = {
+        isNew: true,
+        id,
+        prev: parentNode.some ? parentNode.safeUnwrap() : undefined,
+        next: [],
+        type: "ITEM",
+        data: {
+          id,
+          text,
+          createdDate: this.uid.parseStamp(id.data),
+          habiticaId: "",
+          completed: false,
+          group: parentNode.some ? parentNode.safeUnwrap().data.id : undefined,
+        },
+      };
+
+      const validatedDeps: TaskItemKey[] = [];
+      for (const dep of deps) {
+        const node = this.findItemNodeFromRaw(dep);
+        if (node.none) {
+          return Result.Err("Failed to find dependency");
+        }
+
+        Guards.assert<Some<ItemTaskNode>>(node);
+        validatedDeps.push(node.safeUnwrap().data.id);
+      }
+      itemNode.data.dependencies = validatedDeps;
+
+      if (this.itemHasLoop(itemNode)) {
+        return Result.Err("Item node has dependency loop");
+      }
+
+      // Add node to the respective structs.
+      this.nodes.push(itemNode);
+      this.addModified(itemNode, "Create new item node.");
+
+      return Result.Ok(itemNode);
     }
 
     /**
@@ -770,7 +969,7 @@ export namespace Habitica {
      * Updates the connections of the item task node.
      * @param node the item task node to update
      */
-    private updateItemNode(node: ItemTaskNode) {
+    private updateItemNodeConnections(node: ItemTaskNode) {
       const parent = this.getGroupNode(node.data.group);
       if (parent.none && node.data.group !== undefined) {
         // No parent found but this node has one. We need to remove it and mark for update.
@@ -954,6 +1153,47 @@ export namespace Habitica {
       }
 
       return false;
+    }
+
+    /**
+     * Checks if an item has a loop in dependencies.
+     * @param originalItem search start point
+     * @returns true if there is a loop in deps
+     */
+    private itemHasLoop(originalItem: ItemTaskNode): boolean {
+      const getNodesFromDeps = (maybeKeys: TaskItemKey[] | undefined): ItemTaskNode[] => {
+        if (maybeKeys === undefined) {
+          return [];
+        }
+
+        return (
+          originalItem.data.dependencies
+            .map((k) => this.findItemNode(k))
+            .filter((o) => o.some) as Some<ItemTaskNode>[]
+        ).map((n) => n.safeUnwrap());
+      };
+
+      // Do BFS on the item dependencies.
+      let queue: ItemTaskNode[] = getNodesFromDeps(originalItem.data.dependencies);
+
+      // For all items on the queue create a new array of all their dependencies.
+      const iterateAllQueue = (queue: ItemTaskNode[]): ItemTaskNode[] => {
+        const newQueueLayer: ItemTaskNode[] = [];
+        for (const item of queue) {
+          newQueueLayer.push(...getNodesFromDeps(item.data.dependencies));
+        }
+        return newQueueLayer;
+      };
+
+      // For all items in the queue search if they have a dependency on the original item.
+      while (queue.length !== 0) {
+        for (const item of queue) {
+          if (item.id.data === originalItem.id.data) {
+            return true;
+          }
+        }
+        queue = iterateAllQueue(queue);
+      }
     }
 
     /**

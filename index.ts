@@ -6,6 +6,7 @@ import { ShortUniqueId } from "./short-unique-id";
 import { PropertiesForm } from "./propertiesContent";
 import { TasksHtml } from "./tasksContent";
 import { AddGroupHtml } from "./addGroupContent";
+import { ItemEditorHtml } from "./itemEditorContent";
 
 interface ChecklistItem {
   completed: boolean;
@@ -298,6 +299,14 @@ function doGet(
     );
   }
 
+  if (e.parameter["path"] === "addItem") {
+    currentPath = "addItem";
+    return ItemEditorHtml.GetHtmlPage(e).addMetaTag(
+      "viewport",
+      "width=device-width, initial-scale=1"
+    );
+  }
+
   if (e.parameter["path"] === "tasks") {
     currentPath = "tasks";
     return TasksHtml.GetHtmlPage(e).addMetaTag("viewport", "width=device-width, initial-scale=1");
@@ -307,12 +316,14 @@ function doGet(
   return TasksHtml.GetHtmlPage(e).addMetaTag("viewport", "width=device-width, initial-scale=1");
 }
 
+type RouterPaths = "props" | "addGroup" | "tasks" | "default" | "addItem";
+
 export namespace Home {
   /**
    * Gets the current router path.
    * @returns path router options
    */
-  export function GetPath(): Option<"props" | "addGroup" | "tasks" | "default"> {
+  export function GetPath(): Option<RouterPaths> {
     if (currentPath === null) {
       return Option.None;
     }
@@ -321,4 +332,4 @@ export namespace Home {
   }
 }
 
-let currentPath: ("props" | "addGroup" | "tasks" | "default") | null = null;
+let currentPath: RouterPaths | null = null;
