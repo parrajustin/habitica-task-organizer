@@ -1,4 +1,5 @@
 import { Habitica } from "./habitica";
+import { Option } from "./option";
 
 export namespace Utils {
   export function toString(val: unknown): string {
@@ -11,16 +12,38 @@ export namespace Utils {
     return value;
   }
 
+  /**
+   * Gets metadata from a given string.
+   * @param str string to check for the metadata
+   * @returns the extracted metadata
+   */
   export function GetMetadata(str: string): string {
     const re = new RegExp("(.*) \\[data:([^[]*)\\]$", "g");
     if (typeof str !== "string") {
-      return undefined;
+      return "";
     }
     const array = re.exec(str);
-    if (array === null || array.length === 0) {
-      return str;
+    if (array === null || array === undefined) {
+      return "";
+    }
+    console.log(array);
+    if (array.length === 0) {
+      return "";
     }
     return array[2];
+  }
+
+  /**
+   * Tries to get metadata.
+   * @param str string to check for metadata
+   * @returns the extracted metadata if any
+   */
+  export function GetMetadataOption(str: string): Option<string> {
+    const metadata = GetMetadata(str);
+    if (metadata === "") {
+      return Option.None;
+    }
+    return Option.Some(metadata);
   }
 
   export function GetTitle(str: string): string {

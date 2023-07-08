@@ -79,6 +79,14 @@ interface HabitiacaChecklistItemMetadata {
    * Check list item depdencies.
    */
   taskDep?: string[];
+  /**
+   * Timestamp when marked done. In milliseconds elapsed since UTC epoch.
+   */
+  whenDone?: number;
+  /**
+   * Current progress from 0 - 1000 in int format.
+   */
+  progress?: number;
 }
 
 /**
@@ -225,6 +233,14 @@ export namespace Habitica {
      * Task group if it belongs to one.
      */
     group?: TaskGroupKey;
+    /**
+     * When task was marked done, or noticed done.
+     */
+    whenDone?: Date;
+    /**
+     * Progress from 0 - 1000;
+     */
+    progress?: number;
   }
 
   /**
@@ -287,7 +303,7 @@ export namespace Habitica {
      */
     constructor(public id: string, public text: string, checkListItems: ChecklistItem[]) {
       for (const item of checkListItems) {
-        let node: TaskNodeType;
+        let node: Option<TaskNodeType> = Option.None;
 
         const substring = item.text.substring(0, TASK_GROUP_PREFIX.length);
         if (substring === TASK_GROUP_PREFIX) {
@@ -296,8 +312,10 @@ export namespace Habitica {
           node = this.createItemNode(item);
         }
 
-        this.nodes.push(node);
-        this.idToNodes[node.id.data] = node;
+        if (node.some) {
+          this.nodes.push(node.safeUnwrap());
+          this.idToNodes[node.safeUnwrap().id.data] = node.safeUnwrap();
+        }
       }
 
       for (const node of this.nodes) {
@@ -562,6 +580,15 @@ export namespace Habitica {
 
       this.addModified(node, `Changed "completed" (${node.data.completed} => ${complete}).`);
       node.data.completed = complete;
+
+      if (node.type === "ITEM") {
+        if (complete) {
+          node.data.whenDone = new Date();
+        } else {
+          node.data.whenDone = undefined;
+        }
+      }
+
       return Result.Ok(null);
     }
 
@@ -1028,10 +1055,20 @@ export namespace Habitica {
       }
     }
 
-    private getMetadata<T>(text: string): T {
-      const compresssedMetadata = Utils.GetMetadata(text);
-      const metadata = this.lzString.decompressFromBase64(compresssedMetadata);
-      return JSON.parse(metadata) as T;
+    /**
+     * Gets metadata from the given string.
+     * @param text text to get metadata from, expects there to be metadata
+     * @returns Metadata
+     */
+    private getMetadata<T>(text: string): Option<T> {
+      const compresssedMetadata = Utils.GetMetadataOption(text);
+      if (compresssedMetadata.none) {
+        return Option.None;
+      }
+      Guards.assert<Some<T>>(compresssedMetadata);
+
+      const metadata = this.lzString.decompressFromBase64(compresssedMetadata.safeUnwrap());
+      return Option.Some(JSON.parse(metadata) as T);
     }
 
     private WrapGroupNodeId(id: string): TaskGroupKey {
@@ -1044,10 +1081,15 @@ export namespace Habitica {
      * @param item raw checklist group from habitica api
      * @returns Group task node object
      */
-    private createGroupNode(item: ChecklistItem): GroupTaskNode {
+    private createGroupNode(item: ChecklistItem): Option<GroupTaskNode> {
       const metadata = this.getMetadata<HabitiacaGroupItemMetadata>(item.text);
+      if (metadata.none) {
+        return Option.None;
+      }
+      Guards.assert<Some<HabitiacaGroupItemMetadata>>(metadata);
+
       const text = Utils.GetTitle(item.text);
-      const id = this.WrapGroupNodeId(metadata.id);
+      const id = this.WrapGroupNodeId(metadata.safeUnwrap().id);
       const node: GroupTaskNode = {
         id,
         next: [],
@@ -1057,15 +1099,15 @@ export namespace Habitica {
           completed: item.completed,
           description: text.substring(TASK_GROUP_PREFIX.length),
           id,
-          createdDate: this.uid.parseStamp(metadata.id),
+          createdDate: this.uid.parseStamp(metadata.safeUnwrap().id),
         },
       };
 
-      if (metadata.parentId !== undefined) {
-        node.data.parentGroupId = this.WrapGroupNodeId(metadata.parentId);
+      if (metadata.safeUnwrap().parentId !== undefined) {
+        node.data.parentGroupId = this.WrapGroupNodeId(metadata.safeUnwrap().parentId);
       }
 
-      return node;
+      return Option.Some(node);
     }
 
     private WrapItemNodeId(id: string): TaskItemKey {
@@ -1078,10 +1120,15 @@ export namespace Habitica {
      * @param item raw checklist item from habitica api
      * @returns item task node object
      */
-    private createItemNode(item: ChecklistItem): ItemTaskNode {
+    private createItemNode(item: ChecklistItem): Option<ItemTaskNode> {
       const metadata = this.getMetadata<HabitiacaChecklistItemMetadata>(item.text);
+      if (metadata.none) {
+        return Option.None;
+      }
+      Guards.assert<Some<HabitiacaChecklistItemMetadata>>(metadata);
+
       const text = Utils.GetTitle(item.text);
-      const id = this.WrapItemNodeId(metadata.id);
+      const id = this.WrapItemNodeId(metadata.safeUnwrap().id);
       const node: ItemTaskNode = {
         id,
         next: [],
@@ -1092,22 +1139,33 @@ export namespace Habitica {
           text: text,
           id,
           createdDate: this.uid.parseStamp(metadata.id),
+          whenDone:
+            metadata.safeUnwrap().whenDone !== undefined && item.completed
+              ? new Date(metadata.safeUnwrap().whenDone)
+              : undefined,
+          progress: metadata.safeUnwrap().progress,
         },
       };
 
-      if (metadata.groupId !== undefined) {
-        node.data.group = this.WrapGroupNodeId(metadata.groupId);
+      const metadataHasWhenDone = metadata.safeUnwrap().whenDone !== undefined;
+      const nodeHasWhenDone = node.data.whenDone !== undefined;
+      if (metadataHasWhenDone !== nodeHasWhenDone) {
+        this.addModified(node, `Removed whenDone value.`);
       }
 
-      if (metadata.taskDep !== undefined) {
+      if (metadata.safeUnwrap().groupId !== undefined) {
+        node.data.group = this.WrapGroupNodeId(metadata.safeUnwrap().groupId);
+      }
+
+      if (metadata.safeUnwrap().taskDep !== undefined) {
         const deps: TaskItemKey[] = [];
-        for (const id of metadata.taskDep) {
+        for (const id of metadata.safeUnwrap().taskDep) {
           deps.push(this.WrapItemNodeId(id));
         }
         node.data.dependencies = deps;
       }
 
-      return node;
+      return Option.Some(node);
     }
 
     /**

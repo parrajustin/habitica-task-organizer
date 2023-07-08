@@ -7,6 +7,7 @@ import { PropertiesForm } from "./propertiesContent";
 import { TasksHtml } from "./tasksContent";
 import { AddGroupHtml } from "./addGroupContent";
 import { ItemEditorHtml } from "./itemEditorContent";
+import { Utils } from "./utils";
 
 interface ChecklistItem {
   completed: boolean;
