@@ -879,7 +879,10 @@ export namespace Habitica {
       text: string,
       parent: Option<string>,
       childIds: string[]
-    ): GroupTaskNode {
+    ): Result<
+      GroupTaskNode,
+      "Has dependency loop" | "Failed to find dependency" | "Parent node doesn't exist"
+    > {
       // Wrap the id as a group key.
       const id = this.WrapGroupNodeId(this.uid.stamp(15));
       // Get the parent node if one is defined, if it is not found set to none.
@@ -887,6 +890,9 @@ export namespace Habitica {
         parent.some && childIds.findIndex((s) => s === parent.safeUnwrap()) === -1
           ? this.findGroupNodeFromRaw(parent.safeUnwrap())
           : Option.None;
+      if (parent.some && parentNode.none) {
+        return Result.Err("Parent node doesn't exist");
+      }
 
       // Temporary node without next.
       const groupNode: GroupTaskNode = {
@@ -910,6 +916,9 @@ export namespace Habitica {
       for (const child of childIds) {
         // Try to find the node.
         const node = this.findNode(child);
+        if (node.none) {
+          return Result.Err("Failed to find dependency");
+        }
         if (node.some) {
           // If found set the node into the modified nodes array.
           const val = node.safeUnwrap();
@@ -932,8 +941,7 @@ export namespace Habitica {
 
       // If there is a loop remove this group's parent node.
       if (this.groupHasLoop(groupNode)) {
-        groupNode.prev = undefined;
-        groupNode.data.parentGroupId = undefined;
+        return Result.Err("Has dependency loop");
       }
 
       // Add this node to the array of nodes.
@@ -942,7 +950,7 @@ export namespace Habitica {
       if (groupNode.prev === undefined) {
         this.rootNodes.push(groupNode);
       }
-      return groupNode;
+      return Result.Ok(groupNode);
     }
 
     /**

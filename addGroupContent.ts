@@ -241,8 +241,14 @@ function ProcesGroupForm(e: FullFormType): FormReturn {
     (i) => i !== "text" && i !== "parent" && i !== "selectedGroup"
   );
   if (e.selectedGroup === undefined) {
-    console.log("Create Group Node");
-    graph.createNewGroupNode(e.text, e.parent !== "" ? Option.Some(e.parent) : Option.None, deps);
+    const result = graph.createNewGroupNode(
+      e.text,
+      e.parent !== "" ? Option.Some(e.parent) : Option.None,
+      deps
+    );
+    if (result.err) {
+      return { ok: false, error: result.val };
+    }
   } else if (e.selectedGroup !== undefined && e.selectedGroup !== "") {
     const result = graph.updateGroupNode(
       e.selectedGroup,
@@ -250,7 +256,7 @@ function ProcesGroupForm(e: FullFormType): FormReturn {
       e.parent !== "" ? Option.Some(e.parent) : Option.None,
       deps
     );
-    if (!result.ok) {
+    if (result.err) {
       return { ok: false, error: result.val };
     }
   }
