@@ -1,0 +1,93 @@
+<!--
+ * Copyright 2023 Justin Parra. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <?!= HtmlService.createTemplateFromFile("sharedHeaderIncludes").evaluate().getContent() ?>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style></style>
+  </head>
+  <body>
+    <!-- Include the top app bar and drawer content -->
+    <?!= HtmlService.createTemplateFromFile("sharedAppHeader").evaluate().getContent() ?>
+
+    <!-- Main html content -->
+    <main class="mdc-top-app-bar--fixed-adjust">
+      <div class="mdc-layout-grid">
+        <div class="mdc-layout-grid__inner">
+          <div
+            class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12-desktop mdc-layout-grid__cell--span-8-tablet mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--align-middle"
+          >
+            <div id="chart_div"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Store data passed to template here, so it is available to the imported JavaScript. -->
+    <?!= HtmlService.createTemplateFromFile("sharedAppHeaderJs").evaluate().getContent() ?>
+    <script>
+      const data = <?= GanttHtml.GetAllDataAsRows() ?>;
+    </script>
+    <script>
+      const parsedData = JSON.parse(atob(data));
+      const fixedData = parsedData.map((r) => {
+        const entry = r;
+        entry[3] = new Date(r[3]);
+        entry[4] = new Date(r[4]);
+        return entry;
+      });
+      var chart;
+
+      function drawChart() {
+        const data = new google.visualization.DataTable();
+        data.addColumn("string", "Task ID");
+        data.addColumn("string", "Task Name");
+        data.addColumn("string", "Resource");
+        data.addColumn("date", "Start Date");
+        data.addColumn("date", "End Date");
+        data.addColumn("number", "Duration");
+        data.addColumn("number", "Percent Complete");
+        data.addColumn("string", "Dependencies");
+
+        data.addRows(fixedData);
+        var options = {
+          height: 1000,
+          gantt: {
+            criticalPathEnabled: false, // Critical path arrows will be the same as other arrows.
+            arrow: {
+              angle: 100,
+              width: 5,
+              color: "green",
+              radius: 0,
+            },
+            sortTasks: true,
+          },
+        };
+
+        chart = new google.visualization.Gantt(document.getElementById("chart_div"));
+        chart.draw(data, options);
+      }
+
+      google.charts.load("current", { packages: ["gantt"] });
+      google.charts.setOnLoadCallback(drawChart);
+
+      // window.addEventListener("load", () => {});
+    </script>
+  </body>
+</html>

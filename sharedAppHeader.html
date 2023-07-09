@@ -100,6 +100,16 @@
         <span class="mdc-deprecated-list-item__text">Add Item</span>
       </a>
       <a
+        class="mdc-deprecated-list-item <? if (SharedHtml.IsCurrentPath('gantt')) { ?>mdc-deprecated-list-item--activated<? } ?>"
+        href="<?= Utils.GetScriptUrl('?path=gantt') ?>"
+      >
+        <span class="mdc-deprecated-list-item__ripple"></span>
+        <i class="material-icons mdc-deprecated-list-item__graphic" aria-hidden="true"
+          >data_exploration</i
+        >
+        <span class="mdc-deprecated-list-item__text">Gantt Charts</span>
+      </a>
+      <a
         class="mdc-deprecated-list-item <? if (SharedHtml.IsCurrentPath('props')) { ?>mdc-deprecated-list-item--activated<? } ?>"
         href="<?= Utils.GetScriptUrl('?path=props') ?>"
       >

@@ -8,6 +8,7 @@ import { TasksHtml } from "./tasksContent";
 import { AddGroupHtml } from "./addGroupContent";
 import { ItemEditorHtml } from "./itemEditorContent";
 import { Utils } from "./utils";
+import { GanttHtml } from "./ganttContent";
 
 interface ChecklistItem {
   completed: boolean;
@@ -313,11 +314,16 @@ function doGet(
     return TasksHtml.GetHtmlPage(e).addMetaTag("viewport", "width=device-width, initial-scale=1");
   }
 
+  if (e.parameter["path"] === "gantt") {
+    currentPath = "gantt";
+    return GanttHtml.GetHtmlPage(e).addMetaTag("viewport", "width=device-width, initial-scale=1");
+  }
+
   currentPath = "default";
   return TasksHtml.GetHtmlPage(e).addMetaTag("viewport", "width=device-width, initial-scale=1");
 }
 
-type RouterPaths = "props" | "addGroup" | "tasks" | "default" | "addItem";
+type RouterPaths = "props" | "addGroup" | "tasks" | "default" | "addItem" | "gantt";
 
 export namespace Home {
   /**

@@ -103,6 +103,27 @@ interface HabitiacaGroupItemMetadata {
   parentId?: string;
 }
 
+export type ChartTaskId = string;
+type ChartTaskName = string;
+type ChartGroup = string;
+type ChartStart = Date;
+type ChartEnd = Date;
+// In ms.
+type ChartDuration = number;
+// 0-1.
+type ChartPercent = number;
+type ChartDeps = string;
+export type GoogleChartRow = [
+  ChartTaskId,
+  ChartTaskName,
+  ChartGroup | null,
+  ChartStart,
+  ChartEnd,
+  ChartDuration | null,
+  ChartPercent,
+  ChartDeps | null
+];
+
 export namespace Habitica {
   /**
    * Gets the days todo name.
@@ -119,12 +140,12 @@ export namespace Habitica {
   }
 
   /**
-   * Gets today's todo item.
-   * @returns Result of today's todo entry, if it exists
+   * Get all habitica todo tasks.
+   * @returns result of operation to fetch habitica tasks
    */
-  function GetTodayTodo(): Result<
-    Task,
-    "InvalidScriptProperty" | "FailedFetchNetworkRequest" | "FailedTasksSuccess" | "MissingToday"
+  export function GetHabiticaTasks(): Result<
+    Task[],
+    "InvalidScriptProperty" | "FailedFetchNetworkRequest" | "FailedTasksSuccess"
   > {
     const userProperties = PropertiesService.getUserProperties();
     const apiKey = userProperties.getProperty("API_KEY");
@@ -152,6 +173,23 @@ export namespace Habitica {
       return Result.Err("FailedTasksSuccess");
     }
 
+    return Result.Ok(data.data);
+  }
+
+  /**
+   * Gets today's todo item.
+   * @returns Result of today's todo entry, if it exists
+   */
+  function GetTodayTodo(): Result<
+    Task,
+    "InvalidScriptProperty" | "FailedFetchNetworkRequest" | "FailedTasksSuccess" | "MissingToday"
+  > {
+    const data = GetHabiticaTasks();
+    if (data.err) {
+      return data;
+    }
+    Guards.assert<Ok<Task[]>>(data);
+
     // Get the name for today's todo.
     const todayNameOption = GetTodayTodoName();
     if (todayNameOption.none) {
@@ -162,7 +200,7 @@ export namespace Habitica {
     const todayName = todayNameOption.unwrap();
 
     // Finally attempt to find the task that relates to today.
-    for (const task of data.data) {
+    for (const task of data.unwrap()) {
       if (task.text === todayName) {
         return Result.Ok(task);
       }
@@ -366,6 +404,34 @@ export namespace Habitica {
         });
       };
       recursiveMap(this.rootNodes);
+    }
+
+    public convertToGoogleChartEntries(): GoogleChartRow[] {
+      const returnee: GoogleChartRow[] = [];
+
+      for (const node of this.nodes) {
+        if (node.type === "ITEM") {
+          const startDate = new Date(node.data.createdDate);
+          startDate.setUTCHours(0, 0, 0, 0);
+          const endDate = new Date(this.text.substring(this.text.indexOf("@") + 1));
+          endDate.setUTCHours(23, 59, 59, 999);
+          returnee.push([
+            node.id.data,
+            node.data.text,
+            node.data.group?.data,
+            startDate,
+            endDate,
+            null,
+            node.data.progress ?? (node.data.completed ? 100.0 : 0.0),
+            node.data.dependencies
+              ?.map((k) => k.data)
+              .filter((i) => i !== "")
+              .join(","),
+          ]);
+        }
+      }
+
+      return returnee;
     }
 
     /**
@@ -1279,6 +1345,10 @@ export namespace Habitica {
     }
   }
 
+  /**
+   * Gets the current day's task graph.
+   * @returns the graph of tasks
+   */
   export function GetTaskGraph(): Result<TaskGraph, "InvalidScriptProperty" | "UnderlyingIssue"> {
     if (currentTaskGraph === undefined) {
       const todo = CreateOrGetTodayTodoItem();
