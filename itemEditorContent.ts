@@ -65,7 +65,7 @@ export namespace ItemEditorHtml {
 
   export function IsSelectedANodeDep(node: Habitica.ItemTaskNode): boolean {
     return (
-      selectedItem !== undefined &&
+      selectedItem !== null &&
       selectedItem.data.dependencies !== undefined &&
       selectedItem.data.dependencies.findIndex((i) => i.data === node.id.data) !== -1
     );
@@ -241,7 +241,7 @@ function ProcessItemForm(e: FullFormType): FormReturn {
     if (result.err) {
       return { ok: false, error: result.val };
     }
-  } else if (e.selectedItem !== undefined && e.selectedItem !== "") {
+  } else if (e.selectedItem !== null && e.selectedItem !== "") {
     console.log("update item");
     const result = graph.updateItemNode(
       e.selectedItem,
