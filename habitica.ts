@@ -1138,7 +1138,7 @@ export namespace Habitica {
           completed: item.completed,
           text: text,
           id,
-          createdDate: this.uid.parseStamp(metadata.id),
+          createdDate: this.uid.parseStamp(metadata.safeUnwrap().id),
           whenDone:
             metadata.safeUnwrap().whenDone !== undefined && item.completed
               ? new Date(metadata.safeUnwrap().whenDone)
