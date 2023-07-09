@@ -418,7 +418,11 @@ export namespace Habitica {
           returnee.push([
             node.id.data,
             node.data.text,
-            node.data.group?.data,
+            node.data.group !== undefined
+              ? this.findGroupNode(node.data.group)
+                  .andThen<string>((n) => Option.Some(this.getGroupString(n)))
+                  .unwrapOr<string | null>(null)
+              : null,
             startDate,
             endDate,
             null,
@@ -1342,6 +1346,24 @@ export namespace Habitica {
           node,
         };
       }
+    }
+
+    /**
+     * Gets the group string from current group to root.
+     * @param node starting group node for group string
+     * @returns Group 1 | Group 2 | Group 3
+     */
+    private getGroupString(node: GroupTaskNode): string {
+      let groupStr = node.data.description;
+      let current = node;
+      while (current.data.parentGroupId !== undefined) {
+        const next = this.getGroupNode(current.data.parentGroupId);
+        if (next.some) {
+          groupStr = `${next.safeUnwrap().data.description} | ${groupStr}`;
+          current = next.safeUnwrap();
+        }
+      }
+      return groupStr;
     }
   }
 
