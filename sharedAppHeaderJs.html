@@ -55,4 +55,22 @@
   function closeProgress() {
     appHeaderProgress.foundation.close();
   }
+  function switchColorMode(mode) {
+    openProgress();
+    google.script.run
+      .withSuccessHandler((resp) => {
+        closeProgress();
+        if (resp) {
+          const url = "<?= SharedHtml.GetCurrentPath() ?>";
+          window.top.location.href = url;
+        } else {
+          openSnackbar("Failed to update color mode.");
+        }
+      })
+      .withFailureHandler(() => {
+        openSnackbar(`Unknown error when attempting to modify color mode.`);
+        closeProgress();
+      })
+      .ChangeColorMode(mode);
+  }
 </script>

@@ -1,37 +1,5 @@
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"
-/>
-<!-- Required Material Web JavaScript library -->
-<script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-<style>
-  :root {
-    --mdc-theme-primary: #344955;
-    --mdc-theme-secondary: #f9aa33;
-    font-size: large;
-
-    .mdc-drawer .mdc-deprecated-list-item--activated {
-      color: var(--mdc-theme-secondary);
-    }
-
-    .mdc-drawer .mdc-deprecated-list-item--activated .mdc-deprecated-list-item__graphic {
-      color: var(--mdc-theme-secondary);
-    }
-
-    .mdc-text-field--focused:not(.mdc-text-field--disabled) .mdc-floating-label {
-      color: var(--mdc-theme-secondary);
-    }
-  }
-
-  html {
-    overflow-x: hidden;
-  }
-
-  body {
-    margin: 0;
-    width: 100vw;
-    height: 100vh;
-  }
-</style>
+<? if (SharedHtml.IsLightMode()) { ?>
+<?!= HtmlService.createTemplateFromFile("sharedHeaderLight").evaluate().getContent() ?>
+<? } else { ?>
+<?!= HtmlService.createTemplateFromFile("sharedHeaderDark").evaluate().getContent() ?>
+<? } ?>
