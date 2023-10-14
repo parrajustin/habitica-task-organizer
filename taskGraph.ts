@@ -7,8 +7,6 @@ import { ShortUniqueId } from "./short-unique-id";
 import { Utils } from "./utils";
 import { Habitica } from "./habitica";
 
-type KeyTypes = TaskItemKey | TaskGroupKey;
-
 /**
  * Symbol of task item ids.
  */
@@ -19,43 +17,29 @@ declare const taskItemId: unique symbol;
  */
 declare const taskGroupId: unique symbol;
 
+/** Symbol of todo entry id */
+declare const todoEntryId: unique symbol;
+
+/** Task specific key. */
 export interface TaskItemKey {
   data: string;
   [taskItemId]: () => never;
 }
 
+/** Group specific key. */
 export interface TaskGroupKey {
   data: string;
   [taskGroupId]: () => never;
 }
 
-export interface ChecklistItem {
-  completed: boolean;
-  text: string;
-  id: string;
+/** Root node specific key. */
+export interface RootTodoKey {
+  data: string;
+  [todoEntryId]: () => never;
 }
 
-export interface Task {
-  attribute: string;
-  byHabitica: boolean;
-  challenge: any;
-  checklist: ChecklistItem[];
-  collapseChecklist: boolean;
-  completed: boolean;
-  createdAt: string;
-  group: any;
-  id: string;
-  notes: string;
-  priority: number;
-  reminders: any[];
-  tags: string[];
-  text: string;
-  type: "todos";
-  updatedAt: string;
-  userId: string;
-  value: number;
-  _id: string;
-}
+// Collection of key types.
+type KeyTypes = TaskItemKey | TaskGroupKey | RootTodoKey;
 
 export type ChartTaskId = string;
 type ChartTaskName = string;
@@ -168,7 +152,7 @@ export namespace Graph {
   /**
    * The habitica task group
    */
-  interface TaskGroup extends BaseChecklistItem {
+  interface TaskGroupData extends BaseChecklistItem {
     id: TaskGroupKey;
     /**
      * Parent group if it has any.
@@ -191,9 +175,23 @@ export namespace Graph {
     next: TaskNodeType[];
   }
 
-  export interface GroupTaskNode extends TaskNode {
+  export interface GroupTaskNodeBase extends TaskNode {
     type: "GROUP";
-    data: TaskGroup;
+    data: TaskGroupData;
+  }
+
+  export interface GroupTaskNode extends GroupTaskNodeBase {
+    isAlsoTodoEntry: false;
+  }
+
+  export interface GroupTaskNodeTodoEntry extends GroupTaskNodeBase {
+    isAlsoTodoEntry: true;
+    todoId: RootTodoKey;
+  }
+
+  export interface RootTodoEntry extends TaskNode {
+    type: "ROOT";
+    todoId: RootTodoKey;
   }
 
   export interface ItemTaskNode extends TaskNode {
@@ -201,7 +199,12 @@ export namespace Graph {
     data: TaskItem;
   }
 
-  export type TaskNodeType = GroupTaskNode | ItemTaskNode;
+  type NonRootTaskNodeType =
+    | GroupTaskNode
+    | GroupTaskNodeTodoEntry
+    | ItemTaskNode;
+
+  export type TaskNodeType = RootTodoEntry | NonRootTaskNodeType;
 
   export type ModifiedNodesType = {
     [id: string]: { reasons: string[]; node: TaskNodeType };
@@ -209,11 +212,15 @@ export namespace Graph {
 
   export class TaskGraph {
     private nodes: TaskNodeType[] = [];
-    private rootNodes: TaskNodeType[] = [];
+    private rootNodes: NonRootTaskNodeType[] = [];
     private modifiedNodes: ModifiedNodesType = {};
     private idToNodes: { [key: string]: TaskNodeType | undefined } = {};
+    // Lz string comparssion library.
     public lzString = new LZString.LZString();
-    private uid = new ShortUniqueId.ShortUniqueId();
+    // Short unique id library.
+    public uid = new ShortUniqueId.ShortUniqueId();
+    // Root todo entries for task items not in a group.
+    public rootTodoEntry: RootTodoEntry;
 
     /**
      *
@@ -221,9 +228,8 @@ export namespace Graph {
      * @param text Habitica todo text message
      */
     constructor(
-      public id: string,
-      public text: string,
-      checkListItems: ChecklistItem[]
+      checkListItems: Habitica.ChecklistItem[],
+      todoItems: Habitica.TaskShort[]
     ) {
       for (const item of checkListItems) {
         let node: Option<TaskNodeType> = Option.None;
@@ -996,7 +1002,9 @@ export namespace Graph {
      * @param item raw checklist group from habitica api
      * @returns Group task node object
      */
-    private createGroupNode(item: ChecklistItem): Option<GroupTaskNode> {
+    private createGroupNode(
+      item: Habitica.ChecklistItem
+    ): Option<GroupTaskNode> {
       const metadata = this.getMetadata<HabitiacaGroupItemMetadata>(item.text);
       if (metadata.none) {
         return Option.None;
@@ -1037,7 +1045,7 @@ export namespace Graph {
      * @param item raw checklist item from habitica api
      * @returns item task node object
      */
-    private createItemNode(item: ChecklistItem): Option<ItemTaskNode> {
+    private createItemNode(item: Habitica.ChecklistItem): Option<ItemTaskNode> {
       const metadata = this.getMetadata<HabitiacaChecklistItemMetadata>(
         item.text
       );

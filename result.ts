@@ -81,6 +81,14 @@ interface BaseResult<T, E> {
   mapErr<F>(mapper: (val: E) => F): Result<T, F>;
 
   /**
+   * Transforms a `Result<T, E>` to `Result<T, F>` by applying a function to a contained `Err` value,
+   * leaving an `Ok` value untouched.
+   *
+   * This function can be used to pass through a successful result while applying logic if an error.
+   */
+  transformError<T2, F>(mapper: (val: E) => Result<T, F>): Result<T, F>;
+
+  /**
    *  Converts from `Result<T, E>` to `Option<T>`, discarding the error if any
    *
    *  Similar to rust's `ok` method
@@ -119,7 +127,11 @@ export class ErrImpl<E> implements BaseResult<E, E> {
     this.val = val;
 
     const stackLines = new Error().stack!.split("\n").slice(2);
-    if (stackLines && stackLines.length > 0 && stackLines[0].includes("ErrImpl")) {
+    if (
+      stackLines &&
+      stackLines.length > 0 &&
+      stackLines[0].includes("ErrImpl")
+    ) {
       stackLines.shift();
     }
 
@@ -139,7 +151,9 @@ export class ErrImpl<E> implements BaseResult<E, E> {
   }
 
   expect(msg: string): never {
-    throw new Error(`${msg} - Error: ${Utils.toString(this.val)}\n${this._stack}`);
+    throw new Error(
+      `${msg} - Error: ${Utils.toString(this.val)}\n${this._stack}`
+    );
   }
 
   expectErr(_msg: string): E {
@@ -147,7 +161,9 @@ export class ErrImpl<E> implements BaseResult<E, E> {
   }
 
   unwrap(): never {
-    throw new Error(`Tried to unwrap Error: ${Utils.toString(this.val)}\n${this._stack}`);
+    throw new Error(
+      `Tried to unwrap Error: ${Utils.toString(this.val)}\n${this._stack}`
+    );
   }
 
   map(_mapper: unknown): Err<E> {
@@ -160,6 +176,10 @@ export class ErrImpl<E> implements BaseResult<E, E> {
 
   mapErr<E2>(mapper: (err: E) => E2): Err<E2> {
     return Result.Err(mapper(this.val));
+  }
+
+  transformError<T, F>(mapper: (val: E) => Result<T, F>): Result<T, F> {
+    return mapper(this.val);
   }
 
   toOption(): Option<never> {
@@ -253,6 +273,10 @@ export class OkImpl<T> implements BaseResult<T, never> {
     return this;
   }
 
+  transformError<U, E>(_mapper: unknown): Ok<T> {
+    return this;
+  }
+
   toOption(): Option<T> {
     return Option.Some(this.val);
   }
@@ -281,14 +305,20 @@ export type Ok<T> = OkImpl<T>;
 
 export type Result<T, E> = Ok<T> | Err<E>;
 
-export type ResultOkType<T extends Result<any, any>> = T extends Ok<infer U> ? U : never;
+export type ResultOkType<T extends Result<any, any>> = T extends Ok<infer U>
+  ? U
+  : never;
 export type ResultErrType<T> = T extends Err<infer U> ? U : never;
 
 export type ResultOkTypes<T extends Result<any, any>[]> = {
-  [key in keyof T]: T[key] extends Result<infer U, any> ? ResultOkType<T[key]> : never;
+  [key in keyof T]: T[key] extends Result<infer U, any>
+    ? ResultOkType<T[key]>
+    : never;
 };
 export type ResultErrTypes<T extends Result<any, any>[]> = {
-  [key in keyof T]: T[key] extends Result<infer U, any> ? ResultErrType<T[key]> : never;
+  [key in keyof T]: T[key] extends Result<infer U, any>
+    ? ResultErrType<T[key]>
+    : never;
 };
 
 export namespace Result {
@@ -358,7 +388,9 @@ export namespace Result {
    * Wrap an async operation that may throw an Error (`try-catch` style) into checked exception style
    * @param op The operation function
    */
-  export function wrapAsync<T, E = unknown>(op: () => Promise<T>): Promise<Result<T, E>> {
+  export function wrapAsync<T, E = unknown>(
+    op: () => Promise<T>
+  ): Promise<Result<T, E>> {
     try {
       return op()
         .then((val) => Ok(val))
@@ -368,7 +400,9 @@ export namespace Result {
     }
   }
 
-  export function isResult<T = any, E = any>(val: unknown): val is Result<T, E> {
+  export function isResult<T = any, E = any>(
+    val: unknown
+  ): val is Result<T, E> {
     return val instanceof Err || val instanceof Ok;
   }
 }

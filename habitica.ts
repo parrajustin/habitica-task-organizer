@@ -5,26 +5,113 @@ import { Option, Some } from "./option";
 import { Ok, Result } from "./result";
 import { ShortUniqueId } from "./short-unique-id";
 import { Utils } from "./utils";
+import { Preferences } from "./preferences";
+import { Graph } from "./taskGraph";
 
-interface TasksUserFetch {
-  success: boolean;
-  data: Task[];
+interface CreateTaskBody {
+  // The text to be displayed for the task.
+  text: string;
+  // Task type, options are: "habit", "daily", "todo", "reward".
+  type: "habit" | "daily" | "todo" | "reward";
+  // Array of UUIDs of tags.
+  tags?: string[];
+  // Alias to assign to task.
+  alias?: string;
+  // User's attribute to use, options are: "str", "int", "per", "con".
+  attribute?: "str" | "int" | "per" | "con";
+  // An array of checklist items. For example, [{"text":"buy tools", "completed":true}, {"text":"build shed", "completed":false}].
+  checklist?: { text: string; completed: boolean }[];
+  // Determines if a checklist will be displayed.
+  collapseChecklist?: boolean;
+  notes?: string;
+  date?: Date;
+  priority?: number;
+  reminders?: string;
+  frequency?: string;
+  repeat?: string;
+  everyX?: number;
+  streak?: number;
+  daysOfMonth?: number;
+  weeksOfMonth?: number;
+  startDate?: Date;
+  up?: boolean;
+  down?: boolean;
+  value?: number;
 }
 
 export namespace Habitica {
+  /** Habitica API for checklist items within the Todo entry. */
+  export interface ChecklistItem {
+    completed: boolean;
+    text: string;
+    id: string;
+  }
 
-  /**
-   * Gets the days todo name.
-   * @returns an option wrapping the possible output
-   */
-  function GetTodayTodoName(): Option<string> {
+  /** Minimial interface of Todo entry from Habitica API. */
+  export interface TaskShort {
+    id: string;
+    notes: string;
+    completed: boolean;
+  }
+
+  /** Full interface of Todo entry from Habitica API. */
+  export interface Task extends TaskShort {
+    attribute: string;
+    byHabitica: boolean;
+    challenge: any;
+    checklist: ChecklistItem[];
+    collapseChecklist: boolean;
+    createdAt: string;
+    group: any;
+    priority: number;
+    reminders: any[];
+    tags: string[];
+    text: string;
+    type: "todos";
+    updatedAt: string;
+    userId: string;
+    value: number;
+    _id: string;
+  }
+
+  /** Json Response from habitica api */
+  interface HabiticaFetchTasks<T> {
+    success: boolean;
+    data: T;
+  }
+
+  /** Gets the task prefix for the names on habitica todo's. */
+  function GetTaskPrefix(): string {
+    if (TODO_ENTRY_PREFIX !== undefined) {
+      return TODO_ENTRY_PREFIX;
+    }
     const userProperties = PropertiesService.getUserProperties();
     const taskSortPrefix = userProperties.getProperty("TASK_SORT_PREFIX");
     if (taskSortPrefix === null) {
-      return Option.None;
+      const newPref = {};
+      const entryDefault = "Entry:";
+      TODO_ENTRY_PREFIX = entryDefault;
+      newPref[Preferences.todoPrefix] = entryDefault;
+      userProperties.setProperties(newPref);
+      return entryDefault;
     }
-    const currentTaskName = `${taskSortPrefix} \`TODO\` @ ${new Date().toDateString()}`;
-    return Option.Some(currentTaskName);
+    TODO_ENTRY_PREFIX = taskSortPrefix;
+    return taskSortPrefix;
+  }
+
+  /** Gets the api props for the habitica api data. */
+  function GetApiProps(): Result<
+    { key: string; user: string },
+    "InvalidScriptProperty"
+  > {
+    const userProperties = PropertiesService.getUserProperties();
+    const apiKey = userProperties.getProperty(Preferences.ApiKey);
+    const apiUser = userProperties.getProperty(Preferences.ApiUser);
+
+    if (apiKey === null || apiUser === null) {
+      return Result.Err("InvalidScriptProperty");
+    }
+    return Result.Ok({ key: apiKey, user: apiUser });
   }
 
   /**
@@ -33,101 +120,153 @@ export namespace Habitica {
    */
   export function GetHabiticaTasks(): Result<
     Task[],
-    "InvalidScriptProperty" | "FailedFetchNetworkRequest" | "FailedTasksSuccess"
+    "InvalidScriptProperty" | "FailedFetchNetworkRequest" | "ApiError"
   > {
-    const userProperties = PropertiesService.getUserProperties();
-    const apiKey = userProperties.getProperty("API_KEY");
-    const apiUser = userProperties.getProperty("API_USER");
-
-    if (apiKey === null || apiUser === null) {
-      return Result.Err("InvalidScriptProperty");
-    }
-
-    // Fetch the tasks and parse them as json.
-    const resp = UrlFetchApp.fetch(
-      "https://habitica.com/api/v3/tasks/user?type=todos",
-      {
-        headers: {
-          "x-api-key": apiKey,
-          "x-api-user": apiUser,
-        },
-      }
-    );
-    const success = resp.getResponseCode() === 200;
-    if (!success) {
-      return Result.Err("FailedFetchNetworkRequest");
-    }
-
-    // Check the tasks were successfully fetched.
-    const data: TasksUserFetch = JSON.parse(resp.getContentText());
-    if (!data.success) {
-      return Result.Err("FailedTasksSuccess");
-    }
-
-    return Result.Ok(data.data);
+    return GetApiProps()
+      .andThen<string, "FailedFetchNetworkRequest">((props) => {
+        const resp = UrlFetchApp.fetch(
+          "https://habitica.com/api/v3/tasks/user?type=todos",
+          {
+            headers: {
+              "x-api-key": props.key,
+              "x-api-user": props.user,
+            },
+          }
+        );
+        const success = resp.getResponseCode() === 200;
+        if (!success) {
+          return Result.Err("FailedFetchNetworkRequest");
+        }
+        return Result.Ok(resp.getContentText());
+      })
+      .andThen<Task[], "ApiError">((content) => {
+        // Check the tasks were successfully fetched.
+        const data: HabiticaFetchTasks<Task[]> = JSON.parse(content);
+        if (!data.success) {
+          return Result.Err("ApiError");
+        }
+        return Result.Ok(data.data);
+      });
   }
 
+  // /**
+  //  * Gets today's todo item.
+  //  * @returns Result of today's todo entry, if it exists
+  //  */
+  // function GetTodayTodo(): Result<
+  //   Task,
+  //   | "InvalidScriptProperty"
+  //   | "FailedFetchNetworkRequest"
+  //   | "FailedTasksSuccess"
+  //   | "MissingToday"
+  // > {
+  //   const data = GetHabiticaTasks();
+  //   if (data.err) {
+  //     return data;
+  //   }
+  //   Guards.assert<Ok<Task[]>>(data);
+
+  //   // Get the name for today's todo.
+  //   const todayNameOption = GetTodayTodoName();
+  //   if (todayNameOption.none) {
+  //     return Result.Err("InvalidScriptProperty");
+  //   }
+
+  //   // Unwrap the option value.
+  //   const todayName = todayNameOption.unwrap();
+
+  //   // Finally attempt to find the task that relates to today.
+  //   for (const task of data.unwrap()) {
+  //     if (task.text === todayName) {
+  //       return Result.Ok(task);
+  //     }
+  //   }
+
+  //   return Result.Err("MissingToday");
+  // }
+
   /**
-   * Gets today's todo item.
-   * @returns Result of today's todo entry, if it exists
+   * Create a default habitica task.
+   * @returns default task or error
    */
-  function GetTodayTodo(): Result<
+  function CreateDefaultHabiticaTask(): Result<
     Task,
-    | "InvalidScriptProperty"
-    | "FailedFetchNetworkRequest"
-    | "FailedTasksSuccess"
-    | "MissingToday"
+    "ApiError" | "FailedFetchNetworkRequest" | "InvalidScriptProperty"
   > {
-    const data = GetHabiticaTasks();
-    if (data.err) {
-      return data;
-    }
-    Guards.assert<Ok<Task[]>>(data);
-
-    // Get the name for today's todo.
-    const todayNameOption = GetTodayTodoName();
-    if (todayNameOption.none) {
-      return Result.Err("InvalidScriptProperty");
-    }
-
-    // Unwrap the option value.
-    const todayName = todayNameOption.unwrap();
-
-    // Finally attempt to find the task that relates to today.
-    for (const task of data.unwrap()) {
-      if (task.text === todayName) {
-        return Result.Ok(task);
-      }
-    }
-
-    return Result.Err("MissingToday");
+    return GetApiProps()
+      .andThen<string, "FailedFetchNetworkRequest">((apiProps) => {
+        const todoPrefix = GetTaskPrefix();
+        const payload: CreateTaskBody[] = [
+          {
+            type: "todo",
+            text: `${todoPrefix} \`Default Entry\` @ ${new Date().toDateString()}`,
+            value: 0,
+            priority: 1,
+            collapseChecklist: false,
+            checklist: [],
+          },
+        ];
+        const postResp = UrlFetchApp.fetch(
+          "https://habitica.com/api/v3/tasks/user",
+          {
+            method: "post",
+            headers: {
+              "x-api-key": apiProps.key,
+              "x-api-user": apiProps.user,
+              "content-type": "application/json",
+            },
+            payload: JSON.stringify(payload),
+          }
+        );
+        const success = postResp.getResponseCode() === 200;
+        if (!success) {
+          return Result.Err("FailedFetchNetworkRequest");
+        }
+        return Result.Ok(postResp.getContentText());
+      })
+      .andThen<Task, "ApiError">((content) => {
+        // Check the tasks were successfully fetched.
+        const data: HabiticaFetchTasks<Task> = JSON.parse(content);
+        if (!data.success) {
+          return Result.Err("ApiError");
+        }
+        return Result.Ok(data.data);
+      });
   }
 
   /**
    * Attempt to create or get today's task.
    * @returns today's task item
    */
-  function CreateOrGetTodayTodoItem(): Result<Task, "InvalidScriptProperty"> {
-    const todo = GetTodayTodo();
+  function CreateOrGetHabiticaTasks(): Result<
+    Task[],
+    "InvalidScriptProperty" | "FailedFetchNetworkRequest" | "ApiError"
+  > {
+    return GetHabiticaTasks()
+      .andThen<Task[], "InvalidData">((task) => {
+        const todoPrefix = GetTaskPrefix();
+        const prefixLen = todoPrefix.length;
 
-    if (todo.ok) {
-      return todo;
-    }
-
-    if (todo.err && todo.val === "InvalidScriptProperty") {
-      return Result.Err("InvalidScriptProperty");
-    }
-
-    const combine = Combine.CombineIntoTodo();
-    if (combine.ok) {
-      return CreateOrGetTodayTodoItem();
-    }
-
-    if (combine.err && combine.val === "InvalidScriptProperty") {
-      return Result.Err("InvalidScriptProperty");
-    }
-
-    return CreateOrGetTodayTodoItem();
+        const keptTodos = task.filter(
+          (t) => t.notes.slice(0, prefixLen) === todoPrefix
+        );
+        if (keptTodos.length === 0) {
+          return Result.Err("InvalidData");
+        }
+        return Result.Ok(keptTodos);
+      })
+      .transformError<
+        Task[],
+        "ApiError" | "FailedFetchNetworkRequest" | "InvalidScriptProperty"
+      >((err) => {
+        // If we got `InvalidData` attempt to create a default task.
+        if (err !== "InvalidData") {
+          return Result.Err(err);
+        }
+        return CreateDefaultHabiticaTask().andThen<Task[]>((defaultTask) => {
+          return Result.Ok([defaultTask]);
+        });
+      });
   }
 
   /**
@@ -135,24 +274,24 @@ export namespace Habitica {
    * @returns the graph of tasks
    */
   export function GetTaskGraph(): Result<
-    TaskGraph,
-    "InvalidScriptProperty" | "UnderlyingIssue"
+    Graph.TaskGraph,
+    "InvalidScriptProperty" | "FailedFetchNetworkRequest" | "ApiError"
   > {
     if (currentTaskGraph === undefined) {
-      const todo = CreateOrGetTodayTodoItem();
+      return CreateOrGetHabiticaTasks().andThen<Graph.TaskGraph>((tasks) => {
+        const checkListItems: Habitica.ChecklistItem[] = [];
+        const todoItems: Habitica.TaskShort[] = [];
 
-      if (todo.err) {
-        return Result.Err("InvalidScriptProperty");
-      }
-      Guards.assert<Ok<Task>>(todo);
-
-      // Raw habitica api task.
-      const task = todo.val;
-      currentTaskGraph = new TaskGraph(task.id, task.text, task.checklist);
+        currentTaskGraph = new Graph.TaskGraph(checkListItems, todoItems);
+        return Result.Ok(currentTaskGraph);
+      });
     }
 
     return Result.Ok(currentTaskGraph);
   }
 }
 
-let currentTaskGraph: Habitica.TaskGraph | undefined = undefined;
+let currentTaskGraph: Graph.TaskGraph | undefined = undefined;
+
+/** App script saved todo entry prefix. */
+let TODO_ENTRY_PREFIX: string | undefined = undefined;
