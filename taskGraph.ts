@@ -102,6 +102,10 @@ export namespace Graph {
      * Id of parent group if any.
      */
     parentId?: string;
+    /**
+     * Id of the habitica api id.
+     */
+    todoHabiticaApiId?: string;
   }
 
   interface BaseChecklistItem {
@@ -186,12 +190,12 @@ export namespace Graph {
 
   export interface GroupTaskNodeTodoEntry extends GroupTaskNodeBase {
     isAlsoTodoEntry: true;
-    todoId: RootTodoKey;
+    todoHabiticaApiId: RootTodoKey;
   }
 
   export interface RootTodoEntry extends TaskNode {
     type: "ROOT";
-    todoId: RootTodoKey;
+    todoHabiticaApiId: RootTodoKey;
   }
 
   export interface ItemTaskNode extends TaskNode {
@@ -199,10 +203,9 @@ export namespace Graph {
     data: TaskItem;
   }
 
-  type NonRootTaskNodeType =
-    | GroupTaskNode
-    | GroupTaskNodeTodoEntry
-    | ItemTaskNode;
+  type GroupNodesType = GroupTaskNode | GroupTaskNodeTodoEntry;
+
+  type NonRootTaskNodeType = GroupNodesType | ItemTaskNode;
 
   export type TaskNodeType = RootTodoEntry | NonRootTaskNodeType;
 
@@ -215,6 +218,9 @@ export namespace Graph {
     private rootNodes: NonRootTaskNodeType[] = [];
     private modifiedNodes: ModifiedNodesType = {};
     private idToNodes: { [key: string]: TaskNodeType | undefined } = {};
+    private habiticaIdToNodes: {
+      [key: string]: RootTodoEntry | GroupTaskNodeTodoEntry;
+    } = {};
     // Lz string comparssion library.
     public lzString = new LZString.LZString();
     // Short unique id library.
@@ -231,19 +237,36 @@ export namespace Graph {
       checkListItems: Habitica.ChecklistItem[],
       todoItems: Habitica.TaskShort[]
     ) {
+      // Create groups and task nodes.
       for (const item of checkListItems) {
         let node: Option<TaskNodeType> = Option.None;
 
         const substring = item.text.substring(0, TASK_GROUP_PREFIX.length);
         if (substring === TASK_GROUP_PREFIX) {
-          node = this.createGroupNode(item);
+          const temp = this.createGroupNode(item);
+          node = temp;
+
+          // If the group node is a root todo entry add it to the `habiticaIdToNodes` dict.
+          if (temp.some && temp.safeUnwrap().isAlsoTodoEntry) {
+            Guards.assert<Some<GroupTaskNodeTodoEntry>>(temp);
+            this.habiticaIdToNodes[temp.safeUnwrap().todoHabiticaApiId.data] =
+              temp.safeUnwrap();
+          }
         } else {
           node = this.createItemNode(item);
         }
 
+        // Add nodes to the entries.
         if (node.some) {
           this.nodes.push(node.safeUnwrap());
           this.idToNodes[node.safeUnwrap().id.data] = node.safeUnwrap();
+        }
+      }
+
+      // Create root todo entry nodes.
+      for (const todoItem of todoItems) {
+        if (this.habiticaIdToNodes[todoItem.id] === undefined) {
+          const rootNode = this.createRootNode(todoItem);
         }
       }
 
@@ -996,6 +1019,10 @@ export namespace Graph {
       return { data: id } as TaskGroupKey;
     }
 
+    private createRootNode(item: Habitica.TaskShort): Option<RootTodoEntry> {
+
+    }
+
     /**
      * Creates a group task node from the given checklist item. Expects it to be a group check list
      * item.
@@ -1004,7 +1031,7 @@ export namespace Graph {
      */
     private createGroupNode(
       item: Habitica.ChecklistItem
-    ): Option<GroupTaskNode> {
+    ): Option<GroupNodesType> {
       const metadata = this.getMetadata<HabitiacaGroupItemMetadata>(item.text);
       if (metadata.none) {
         return Option.None;
@@ -1013,7 +1040,33 @@ export namespace Graph {
 
       const text = Utils.GetTitle(item.text);
       const id = this.WrapGroupNodeId(metadata.safeUnwrap().id);
-      const node: GroupTaskNode = {
+      const parentGroupId =
+        metadata.safeUnwrap().parentId !== undefined
+          ? this.WrapGroupNodeId(metadata.safeUnwrap().parentId)
+          : undefined;
+
+      // If the habitica api id is set create a `GroupTaskNodeTodoEntry`.
+      if (metadata.safeUnwrap().todoHabiticaApiId !== undefined) {
+        return Option.Some({
+          id,
+          next: [],
+          type: "GROUP",
+          data: {
+            habiticaId: item.id,
+            completed: item.completed,
+            description: text.substring(TASK_GROUP_PREFIX.length),
+            id,
+            createdDate: this.uid.parseStamp(metadata.safeUnwrap().id),
+            parentGroupId,
+          },
+          isAlsoTodoEntry: true,
+          todoHabiticaApiId: this.WrapRootNodeId(
+            metadata.safeUnwrap().todoHabiticaApiId
+          ),
+        } as GroupTaskNodeTodoEntry);
+      }
+
+      const nonTodoGroup: GroupTaskNode = {
         id,
         next: [],
         type: "GROUP",
@@ -1023,20 +1076,19 @@ export namespace Graph {
           description: text.substring(TASK_GROUP_PREFIX.length),
           id,
           createdDate: this.uid.parseStamp(metadata.safeUnwrap().id),
+          parentGroupId,
         },
+        isAlsoTodoEntry: false,
       };
-
-      if (metadata.safeUnwrap().parentId !== undefined) {
-        node.data.parentGroupId = this.WrapGroupNodeId(
-          metadata.safeUnwrap().parentId
-        );
-      }
-
-      return Option.Some(node);
+      return Option.Some(nonTodoGroup);
     }
 
     private WrapItemNodeId(id: string): TaskItemKey {
       return { data: id } as TaskItemKey;
+    }
+
+    private WrapRootNodeId(id: string): RootTodoKey {
+      return { data: id } as RootTodoKey;
     }
 
     /**

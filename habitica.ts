@@ -149,42 +149,6 @@ export namespace Habitica {
       });
   }
 
-  // /**
-  //  * Gets today's todo item.
-  //  * @returns Result of today's todo entry, if it exists
-  //  */
-  // function GetTodayTodo(): Result<
-  //   Task,
-  //   | "InvalidScriptProperty"
-  //   | "FailedFetchNetworkRequest"
-  //   | "FailedTasksSuccess"
-  //   | "MissingToday"
-  // > {
-  //   const data = GetHabiticaTasks();
-  //   if (data.err) {
-  //     return data;
-  //   }
-  //   Guards.assert<Ok<Task[]>>(data);
-
-  //   // Get the name for today's todo.
-  //   const todayNameOption = GetTodayTodoName();
-  //   if (todayNameOption.none) {
-  //     return Result.Err("InvalidScriptProperty");
-  //   }
-
-  //   // Unwrap the option value.
-  //   const todayName = todayNameOption.unwrap();
-
-  //   // Finally attempt to find the task that relates to today.
-  //   for (const task of data.unwrap()) {
-  //     if (task.text === todayName) {
-  //       return Result.Ok(task);
-  //     }
-  //   }
-
-  //   return Result.Err("MissingToday");
-  // }
-
   /**
    * Create a default habitica task.
    * @returns default task or error
@@ -199,7 +163,7 @@ export namespace Habitica {
         const payload: CreateTaskBody[] = [
           {
             type: "todo",
-            text: `${todoPrefix} \`Default Entry\` @ ${new Date().toDateString()}`,
+            text: `${todoPrefix} \`Root Entry\` @ ${new Date().toDateString()}`,
             value: 0,
             priority: 1,
             collapseChecklist: false,
@@ -281,6 +245,15 @@ export namespace Habitica {
       return CreateOrGetHabiticaTasks().andThen<Graph.TaskGraph>((tasks) => {
         const checkListItems: Habitica.ChecklistItem[] = [];
         const todoItems: Habitica.TaskShort[] = [];
+
+        for (const task of tasks) {
+          todoItems.push({
+            id: task.id,
+            notes: task.notes,
+            completed: task.completed,
+          });
+          checkListItems.push(...task.checklist);
+        }
 
         currentTaskGraph = new Graph.TaskGraph(checkListItems, todoItems);
         return Result.Ok(currentTaskGraph);
