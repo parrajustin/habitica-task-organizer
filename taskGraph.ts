@@ -105,7 +105,9 @@ export namespace Graph {
     /**
      * Id of the habitica api id.
      */
-    todoHabiticaApiId?: string;
+    isRoot?: boolean;
+    /** If the group is marked as complete. */
+    isComplete?: boolean;
   }
 
   interface BaseChecklistItem {
@@ -173,10 +175,14 @@ export namespace Graph {
   }
 
   export interface TaskNode {
+    /** If this node is a new entry. */
     isNew?: boolean;
+    /** Generic id type. */
     id: KeyTypes;
     prev?: TaskNodeType;
     next: TaskNodeType[];
+    /** If this node is marked as complete. */
+    isComplete: boolean;
   }
 
   export interface GroupTaskNodeBase extends TaskNode {
@@ -185,17 +191,11 @@ export namespace Graph {
   }
 
   export interface GroupTaskNode extends GroupTaskNodeBase {
-    isAlsoTodoEntry: false;
+    isRootEntry: false;
   }
 
-  export interface GroupTaskNodeTodoEntry extends GroupTaskNodeBase {
-    isAlsoTodoEntry: true;
-    todoHabiticaApiId: RootTodoKey;
-  }
-
-  export interface RootTodoEntry extends TaskNode {
-    type: "ROOT";
-    todoHabiticaApiId: RootTodoKey;
+  export interface RootGroupTaskNode extends GroupTaskNodeBase {
+    isRootEntry: true;
   }
 
   export interface ItemTaskNode extends TaskNode {
@@ -203,39 +203,48 @@ export namespace Graph {
     data: TaskItem;
   }
 
-  type GroupNodesType = GroupTaskNode | GroupTaskNodeTodoEntry;
+  type GroupNodesType = GroupTaskNode | RootGroupTaskNode;
 
-  type NonRootTaskNodeType = GroupNodesType | ItemTaskNode;
-
-  export type TaskNodeType = RootTodoEntry | NonRootTaskNodeType;
+  export type TaskNodeType = GroupNodesType | ItemTaskNode;
 
   export type ModifiedNodesType = {
     [id: string]: { reasons: string[]; node: TaskNodeType };
   };
 
+  export type ModificationsContainerType = {
+    /** Nodes that have been modified */
+    modifiedNodes: ModifiedNodesType;
+    /** Nodes that are to be deleted, either moving or just removed. */
+    deletingNodes: ModifiedNodesType;
+  };
+
   export class TaskGraph {
+    /** All nodes in the graph. */
     private nodes: TaskNodeType[] = [];
-    private rootNodes: NonRootTaskNodeType[] = [];
-    private modifiedNodes: ModifiedNodesType = {};
+    /** Modifications done to the nodes. */
+    private modifications: ModificationsContainerType = {
+      modifiedNodes: {},
+      deletingNodes: {},
+    };
+    /** Dictionary with id of the nodes as the key. */
     private idToNodes: { [key: string]: TaskNodeType | undefined } = {};
-    private habiticaIdToNodes: {
-      [key: string]: RootTodoEntry | GroupTaskNodeTodoEntry;
-    } = {};
-    // Lz string comparssion library.
+    /** Lz string comparssion library. */
     public lzString = new LZString.LZString();
-    // Short unique id library.
+    /** Short unique id library. */
     public uid = new ShortUniqueId.ShortUniqueId();
-    // Root todo entries for task items not in a group.
-    public rootTodoEntry: RootTodoEntry;
+    /** Root group node if one exists. */
+    public rootGroupNode: Option<RootGroupTaskNode> = Option.None;
+    /** Root nodes. */
+    public rootNodes: TaskNodeType[] = [];
 
     /**
      *
-     * @param id Habitica api id
+     * @param todoItems The habitica id of the root entry.
      * @param text Habitica todo text message
      */
     constructor(
-      checkListItems: Habitica.ChecklistItem[],
-      todoItems: Habitica.TaskShort[]
+      public todoItems: Habitica.TaskShort,
+      checkListItems: Habitica.ChecklistItem[]
     ) {
       // Create groups and task nodes.
       for (const item of checkListItems) {
@@ -245,31 +254,37 @@ export namespace Graph {
         if (substring === TASK_GROUP_PREFIX) {
           const temp = this.createGroupNode(item);
           node = temp;
-
-          // If the group node is a root todo entry add it to the `habiticaIdToNodes` dict.
-          if (temp.some && temp.safeUnwrap().isAlsoTodoEntry) {
-            Guards.assert<Some<GroupTaskNodeTodoEntry>>(temp);
-            this.habiticaIdToNodes[temp.safeUnwrap().todoHabiticaApiId.data] =
-              temp.safeUnwrap();
-          }
         } else {
           node = this.createItemNode(item);
         }
 
         // Add nodes to the entries.
         if (node.some) {
-          this.nodes.push(node.safeUnwrap());
           this.idToNodes[node.safeUnwrap().id.data] = node.safeUnwrap();
         }
       }
 
-      // Create root todo entry nodes.
-      for (const todoItem of todoItems) {
-        if (this.habiticaIdToNodes[todoItem.id] === undefined) {
-          const rootNode = this.createRootNode(todoItem);
+      // Use the ids to dedupe the entries.
+      for (const key of Object.keys(this.idToNodes)) {
+        const node = this.idToNodes[key];
+        if (
+          Guards.typeGuard<GroupNodesType>(node, node.type === "GROUP") &&
+          Guards.typeGuard<RootGroupTaskNode>(node, node.isRootEntry)
+        ) {
+          // There is a previous root group node, fix it.
+          if (this.rootGroupNode.some) {
+            const rootNode =
+              this.rootGroupNode.safeUnwrap() as unknown as GroupTaskNode;
+            rootNode.isRootEntry = false;
+            rootNode.data.parentGroupId = node.data.id;
+            this.addModified(rootNode, "Remove as root entry");
+          }
+          this.rootGroupNode = Option.Some(node);
         }
+        this.nodes.push(node);
       }
 
+      // Update the connections of the nodes.
       for (const node of this.nodes) {
         switch (node.type) {
           case "GROUP":
@@ -281,13 +296,14 @@ export namespace Graph {
         }
       }
 
+      // Iterate all the nodes and set the roots.
       for (const node of this.nodes) {
         if (node.prev === undefined) {
           this.rootNodes.push(node);
         }
       }
 
-      const sortFunc = (a, b) => {
+      const sortFunc = (a: TaskNodeType, b: TaskNodeType): number => {
         if (a.type === "GROUP" && b.type === "ITEM") {
           return -1;
         } else if (a.type === "ITEM" && b.type === "GROUP") {
@@ -423,6 +439,7 @@ export namespace Graph {
           habiticaId: "",
           completed: false,
         },
+        isComplete: false,
       };
 
       this.addModified(itemNode, "Created new item node.");
@@ -782,6 +799,7 @@ export namespace Graph {
           completed: false,
           group: parentNode.some ? parentNode.safeUnwrap().data.id : undefined,
         },
+        isComplete: false,
       };
 
       const validatedDeps: TaskItemKey[] = [];
@@ -826,13 +844,21 @@ export namespace Graph {
     > {
       // Wrap the id as a group key.
       const id = this.WrapGroupNodeId(this.uid.stamp(15));
+      // If this is a todo entry node it has a default of the RootGroupNode.
+      const parentOrDefault: Option<string> = parent.transformNone<string>(
+        () => {
+          return this.rootGroupNode.some
+            ? Option.Some(this.rootGroupNode.safeUnwrap().id.data)
+            : Option.None;
+        }
+      );
       // Get the parent node if one is defined, if it is not found set to none.
       const parentNode: Option<GroupTaskNode> =
-        parent.some &&
-        childIds.findIndex((s) => s === parent.safeUnwrap()) === -1
-          ? this.findGroupNodeFromRaw(parent.safeUnwrap())
+        parentOrDefault.some &&
+        childIds.findIndex((s) => s === parentOrDefault.safeUnwrap()) === -1
+          ? this.findGroupNodeFromRaw(parentOrDefault.safeUnwrap())
           : Option.None;
-      if (parent.some && parentNode.none) {
+      if (parentOrDefault.some && parentNode.none) {
         return Result.Err("Parent node doesn't exist");
       }
 
@@ -853,6 +879,8 @@ export namespace Graph {
             ? parentNode.safeUnwrap().data.id
             : undefined,
         },
+        isComplete: false,
+        isRootEntry: false,
       };
 
       // Setup modifying the new children nodes.
@@ -919,7 +947,7 @@ export namespace Graph {
      * Updates the connections of the group task node.
      * @param node the group task node to update
      */
-    private updateGroupNodeConnections(node: GroupTaskNode) {
+    private updateGroupNodeConnections(node: GroupNodesType) {
       if (node.data.parentGroupId !== undefined) {
         const parent = this.getGroupNode(node.data.parentGroupId);
         if (parent.none) {
@@ -1019,10 +1047,6 @@ export namespace Graph {
       return { data: id } as TaskGroupKey;
     }
 
-    private createRootNode(item: Habitica.TaskShort): Option<RootTodoEntry> {
-
-    }
-
     /**
      * Creates a group task node from the given checklist item. Expects it to be a group check list
      * item.
@@ -1046,8 +1070,8 @@ export namespace Graph {
           : undefined;
 
       // If the habitica api id is set create a `GroupTaskNodeTodoEntry`.
-      if (metadata.safeUnwrap().todoHabiticaApiId !== undefined) {
-        return Option.Some({
+      if (metadata.safeUnwrap().isRoot && parentGroupId === undefined) {
+        const node: RootGroupTaskNode = {
           id,
           next: [],
           type: "GROUP",
@@ -1059,11 +1083,10 @@ export namespace Graph {
             createdDate: this.uid.parseStamp(metadata.safeUnwrap().id),
             parentGroupId,
           },
-          isAlsoTodoEntry: true,
-          todoHabiticaApiId: this.WrapRootNodeId(
-            metadata.safeUnwrap().todoHabiticaApiId
-          ),
-        } as GroupTaskNodeTodoEntry);
+          isRootEntry: true,
+          isComplete: metadata.safeUnwrap().isComplete ?? false,
+        };
+        return Option.Some(node);
       }
 
       const nonTodoGroup: GroupTaskNode = {
@@ -1078,8 +1101,15 @@ export namespace Graph {
           createdDate: this.uid.parseStamp(metadata.safeUnwrap().id),
           parentGroupId,
         },
-        isAlsoTodoEntry: false,
+        isRootEntry: false,
+        isComplete: metadata.safeUnwrap().isComplete ?? false,
       };
+      if (metadata.safeUnwrap().isRoot) {
+        this.addModified(
+          nonTodoGroup,
+          "Removing isRoot due to having parent group"
+        );
+      }
       return Option.Some(nonTodoGroup);
     }
 
@@ -1118,24 +1148,30 @@ export namespace Graph {
           text: text,
           id,
           createdDate: this.uid.parseStamp(metadata.safeUnwrap().id),
-          whenDone:
-            metadata.safeUnwrap().whenDone !== undefined && item.completed
-              ? new Date(metadata.safeUnwrap().whenDone)
-              : undefined,
-          progress: metadata.safeUnwrap().progress,
+          whenDone: item.completed
+            ? new Date(metadata.safeUnwrap().whenDone ?? Date.now())
+            : undefined,
+          progress: item.completed ? 1000 : metadata.safeUnwrap().progress,
         },
+        isComplete: item.completed,
       };
 
+      // Check the is done state.
       const metadataHasWhenDone = metadata.safeUnwrap().whenDone !== undefined;
       const nodeHasWhenDone = node.data.whenDone !== undefined;
       if (metadataHasWhenDone !== nodeHasWhenDone) {
-        this.addModified(node, `Removed whenDone value.`);
+        this.addModified(
+          node,
+          `Change in whenDone value. metadata: "${metadataHasWhenDone}" vs node: "${nodeHasWhenDone}"`
+        );
       }
 
+      // Add the group id if it exists.
       if (metadata.safeUnwrap().groupId !== undefined) {
         node.data.group = this.WrapGroupNodeId(metadata.safeUnwrap().groupId);
       }
 
+      // Add any task dependencies.
       if (metadata.safeUnwrap().taskDep !== undefined) {
         const deps: TaskItemKey[] = [];
         for (const id of metadata.safeUnwrap().taskDep) {
@@ -1251,11 +1287,24 @@ export namespace Graph {
      * @param reason reason for the node to be modified
      */
     private addModified(node: TaskNodeType, reason: string) {
-      if (this.modifiedNodes[node.id.data] !== undefined) {
-        this.modifiedNodes[node.id.data].reasons.push(reason);
+      if (this.modifications.modifiedNodes[node.id.data] !== undefined) {
+        this.modifications.modifiedNodes[node.id.data].reasons.push(reason);
       } else {
-        this.modifiedNodes[node.id.data] = {
+        this.modifications.modifiedNodes[node.id.data] = {
           reasons: [reason],
+          node,
+        };
+      }
+    }
+
+    /**
+     * Adds a node to the new root list.
+     * @param node node that is a new root node
+     */
+    private addNewRoot(node: RootTodoEntry | GroupTaskNodeTodoEntry) {
+      if (this.modifications.deletingNodes[node.id.data] === undefined) {
+        this.modifications.deletingNodes[node.id.data] = {
+          reasons: [`Adding root node for "${node.id.data}".`],
           node,
         };
       }

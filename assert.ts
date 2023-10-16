@@ -10,4 +10,8 @@ export namespace Guards {
   // }
 
   export function assert<T>(arg: unknown): asserts arg is T {}
+
+  export function typeGuard<T>(value: any, isMatched: boolean): value is T {
+    return isMatched;
+  }
 }

@@ -45,6 +45,11 @@ interface BaseOption<T> {
    * Maps an `Option<T>` to a `Result<T, E>`.
    */
   toResult<E>(error: E): Result<T, E>;
+
+  /**
+   * Calls `mapper` if the Option is `None`.
+   */
+  transformNone<T2>(transform: () => Option<T>): Option<T>;
 }
 
 /**
@@ -89,6 +94,10 @@ class NoneImpl implements BaseOption<never> {
   toString(): string {
     return "None";
   }
+
+  transformNone<T2>(transform: () => Option<T2>): Option<T2> {
+    return transform();
+  }
 }
 
 // Export None as a singleton, then freeze it so it can't be modified
@@ -100,7 +109,7 @@ Object.freeze(NoneInteral);
 /**
  * Contains the success value
  */
-class SomeImpl<T> implements BaseOption<T> {
+class SomeImpl<T extends any> implements BaseOption<T> {
   static readonly EMPTY = new SomeImpl<void>(undefined);
 
   readonly some!: true;
@@ -172,6 +181,10 @@ class SomeImpl<T> implements BaseOption<T> {
   toString(): string {
     return `Some(${Utils.toString(this.val)})`;
   }
+
+  transformNone<T2>(transform: unknown): Option<T> {
+    return this;
+  }
 }
 
 // This allows Some to be callable - possible because of the es5 compilation target
@@ -180,7 +193,9 @@ export type Some<T> = SomeImpl<T>;
 
 export type Option<T> = Some<T> | None;
 
-export type OptionSomeType<T extends Option<any>> = T extends Some<infer U> ? U : never;
+export type OptionSomeType<T extends Option<any>> = T extends Some<infer U>
+  ? U
+  : never;
 
 export type OptionSomeTypes<T extends Option<any>[]> = {
   [key in keyof T]: T[key] extends Option<any> ? OptionSomeType<T[key]> : never;
@@ -196,7 +211,9 @@ export namespace Option {
    * Parse a set of `Option`s, returning an array of all `Some` values.
    * Short circuits with the first `None` found, if any
    */
-  export function all<T extends Option<any>[]>(...options: T): Option<OptionSomeTypes<T>> {
+  export function all<T extends Option<any>[]>(
+    ...options: T
+  ): Option<OptionSomeTypes<T>> {
     const someOption: OptionSomeTypes<T>[] = [];
     for (let option of options) {
       if (option.some) {
@@ -213,7 +230,9 @@ export namespace Option {
    * Parse a set of `Option`s, short-circuits when an input value is `Some`.
    * If no `Some` is found, returns `None`.
    */
-  export function any<T extends Option<any>[]>(...options: T): Option<OptionSomeTypes<T>[number]> {
+  export function any<T extends Option<any>[]>(
+    ...options: T
+  ): Option<OptionSomeTypes<T>[number]> {
     // short-circuits
     for (const option of options) {
       if (option.some) {
